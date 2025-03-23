@@ -10,41 +10,7 @@ header {
   z-index: 1000 !important;
 }
 
-/* Marker animations and styling */
-.insertion-marker {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.insertion-line {
-  height: 0.25rem;
-  width: 100%;
-  background-color: #93c5fd; /* blue-300 */
-  border-radius: 0.125rem;
-}
-
-.marker-icon {
-  position: absolute;
-  left: 50%; /* Center horizontally */
-  top: 50%;
-  transform: translate(-50%, -50%); /* Center the icon perfectly */
-  z-index: 10;
-  background-color: #dbeafe; /* blue-100 */
-  border-radius: 9999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.marker-icon:hover {
-  background-color: #bfdbfe; /* blue-200 */
-}
-
+/* Remaining styles for components that haven't been migrated to Tailwind yet */
 .insertion-hint {
   position: relative;
   cursor: pointer;

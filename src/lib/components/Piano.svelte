@@ -101,7 +101,7 @@
 
 <div class="piano-wrapper w-full overflow-hidden">
 	<div
-		class="piano-container flex pb-2 pt-1"
+		class="piano-container flex pb-2 pt-1 bg-[hsl(24,10%,90%)] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
 		class:overflow-x-auto={!compact}
 		class:overflow-x-hidden={compact}
 		bind:this={container}
@@ -112,7 +112,7 @@
 				{#each naturalKeys as note}
 					<!-- White key -->
 					<div
-						class="white-key flex cursor-pointer items-end justify-center border border-gray-300 bg-white pb-2"
+						class="white-key flex cursor-pointer items-end justify-center border border-gray-300 bg-white pb-2 transition-colors"
 						class:active={activeKeys.includes(`${note.toLowerCase()}${octave}`)}
 						class:h-32={!compact}
 						class:h-24={compact}
@@ -138,7 +138,7 @@
 					{@const offset = position === 2 ? position + 1 : position}
 					<!-- Black key - positioned absolutely -->
 					<div
-						class="black-key absolute top-0 z-10 cursor-pointer bg-gray-800 text-white"
+						class="black-key absolute top-0 z-10 cursor-pointer bg-gray-800 text-white transition-colors"
 						class:active={activeKeys.includes(`${baseNote.toLowerCase()}#${octave}`)}
 						class:h-20={!compact}
 						class:h-14={compact}
@@ -165,25 +165,7 @@
 </div>
 
 <style>
-	.piano-container {
-		-webkit-overflow-scrolling: touch;
-		scrollbar-width: thin;
-		scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
-	}
-
-	.piano-container::-webkit-scrollbar {
-		height: 6px;
-	}
-
-	.piano-container::-webkit-scrollbar-track {
-		background: transparent;
-	}
-
-	.piano-container::-webkit-scrollbar-thumb {
-		background-color: rgba(0, 0, 0, 0.2);
-		border-radius: 20px;
-	}
-
+	/* These styles are used with direct CSS properties */
 	.white-key.active {
 		background-color: #3b82f6;
 		border-color: #2563eb;
@@ -195,16 +177,6 @@
 
 	.non-interactive {
 		pointer-events: none;
-	}
-
-	.piano-container.overflow-x-hidden {
-		overflow-x: auto !important;
-		max-width: 100%;
-	}
-
-	.piano-wrapper {
-		max-width: 100%;
-		position: relative;
 	}
 
 	@media (max-width: 640px) {

@@ -20,9 +20,7 @@
 	let isInitializing = false;
 	let isMenuOpen = false;
 	let isKeyMenuOpen = false;
-
-	// View mode state
-	let viewMode: 'keyboard' | 'sheet' = 'keyboard';
+	let isChordPanelCollapsed = false; // Track if chord panel is collapsed
 
 	// Chord Riffing - Save chord progressions
 	interface SavedChord {
@@ -43,6 +41,12 @@
 		try {
 			const savedData = localStorage.getItem('pianoboi-saved-chords');
 			console.log('Loading from localStorage:', savedData);
+
+			// Load chord panel collapsed state
+			const collapsedState = localStorage.getItem('pianoboi-chord-panel-collapsed');
+			if (collapsedState !== null) {
+				isChordPanelCollapsed = collapsedState === 'true';
+			}
 
 			if (savedData) {
 				// Need to reconstruct saved chords with proper Signature object references
@@ -100,6 +104,14 @@
 			console.log('Saved chords to localStorage:', savedChords);
 		} catch (error) {
 			console.error('Error saving chords to localStorage:', error);
+		}
+	}
+
+	// Toggle chord panel collapsed state and save to localStorage
+	function toggleChordPanel() {
+		isChordPanelCollapsed = !isChordPanelCollapsed;
+		if (browser) {
+			localStorage.setItem('pianoboi-chord-panel-collapsed', isChordPanelCollapsed.toString());
 		}
 	}
 
@@ -424,11 +436,6 @@
 		return 60 + octaveOffset + noteSemitones + accidentalOffset;
 	}
 
-	// Toggle view mode
-	function toggleViewMode(mode: 'keyboard' | 'sheet') {
-		viewMode = mode;
-	}
-
 	// Generate the scale degree chords for a given key
 	function generateScaleChords(signature: Signature) {
 		const majorScale = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
@@ -660,72 +667,26 @@
 	$: if (activeNotes) {
 		matchingChords = findMatchingChords(activeNotes);
 	}
+
+	// Subscribe button handler
+	function handleSubscribe() {
+		alert('Thanks for subscribing! This feature will be available soon.');
+	}
 </script>
 
 <!-- Main Layout with Sticky UI -->
 <div class="flex h-screen flex-col">
-	<!-- Sticky top navigation -->
-	<header class="sticky top-0 z-30 bg-white shadow-md">
-		<div class="container mx-auto p-3">
-			<div class="header-content flex items-center justify-between">
-				<!-- Title and left controls -->
-				<div class="header-content flex items-center gap-3">
-					<!-- View mode toggle -->
-					<div class="flex overflow-hidden rounded-lg border shadow">
-						<button
-							class="flex-1 px-3 py-1.5 font-medium transition-colors"
-							class:bg-blue-500={viewMode === 'keyboard'}
-							class:text-white={viewMode === 'keyboard'}
-							class:bg-white={viewMode !== 'keyboard'}
-							class:text-gray-700={viewMode !== 'keyboard'}
-							on:click={() => toggleViewMode('keyboard')}
-						>
-							<div class="flex items-center justify-center gap-1.5">
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									class="h-4 w-4"
-									viewBox="0 0 20 20"
-									fill="currentColor"
-								>
-									<path d="M13 7H7v6h6V7z" />
-									<path
-										fill-rule="evenodd"
-										d="M7 2a1 1 0 00-1 1v1H5a3 3 0 00-3 3v10a3 3 0 003 3h10a3 3 0 003-3V7a3 3 0 00-3-3h-1V3a1 1 0 00-1-1H7zm1 3V4h4v1H8z"
-										clip-rule="evenodd"
-									/>
-								</svg>
-								<span class="hidden sm:inline">Keyboard</span>
-							</div>
-						</button>
-						<button
-							class="flex-1 px-3 py-1.5 font-medium transition-colors"
-							class:bg-blue-500={viewMode === 'sheet'}
-							class:text-white={viewMode === 'sheet'}
-							class:bg-white={viewMode !== 'sheet'}
-							class:text-gray-700={viewMode !== 'sheet'}
-							on:click={() => toggleViewMode('sheet')}
-						>
-							<div class="flex items-center justify-center gap-1.5">
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									class="h-4 w-4"
-									viewBox="0 0 20 20"
-									fill="currentColor"
-								>
-									<path
-										fill-rule="evenodd"
-										d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2-1a1 1 0 00-1 1v12a1 1 0 001 1h8a1 1 0 001-1V4a1 1 0 00-1-1H6z"
-										clip-rule="evenodd"
-									/>
-									<path d="M7 5h6v2H7V5zm0 4h6v2H7V9zm0 4h6v2H7v-2z" />
-								</svg>
-								<span class="hidden sm:inline">Sheet</span>
-							</div>
-						</button>
-					</div>
-				</div>
-
-				<!-- Right-aligned MIDI Device Dropdown -->
+	<!-- Full width navigation bar -->
+	<nav class="sticky top-0 w-full bg-white shadow-md z-30">
+		<div class="container mx-auto flex items-center justify-between p-4">
+			<!-- Left side with logo/title -->
+			<div class="flex items-center gap-3">
+				<h1 class="text-xl font-bold text-blue-600">PianoBoi</h1>
+			</div>
+			
+			<!-- Right side with MIDI selector and Save Chord button -->
+			<div class="flex items-center gap-4">
+				<!-- MIDI Device Dropdown -->
 				<div class="relative">
 					<button
 						class="flex items-center gap-1.5 rounded-lg border bg-white px-3 py-1.5 text-sm font-medium shadow hover:bg-gray-50"
@@ -757,7 +718,7 @@
 							></path>
 						</svg>
 					</button>
-
+					
 					<!-- Dropdown menu -->
 					{#if isMenuOpen}
 						<div
@@ -800,23 +761,54 @@
 						</div>
 					{/if}
 				</div>
+				
+				<!-- Save Chord Button - now in header -->
+				<button
+					class="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white shadow hover:bg-blue-700"
+					on:click={saveCurrentChord}
+					disabled={activeNotes.length === 0}
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						class="h-4 w-4"
+						viewBox="0 0 20 20"
+						fill="currentColor"
+					>
+						<path
+							fill-rule="evenodd"
+							d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+							clip-rule="evenodd"
+						/>
+					</svg>
+					Save Chord
+					<span class="ml-1 rounded bg-blue-700 px-1.5 py-0.5 text-xs font-medium">Space</span>
+				</button>
 			</div>
-
-			<!-- Error Message -->
-			{#if !midiEnabled}
-				<div class="mt-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+		</div>
+		
+		<!-- Error Message -->
+		{#if !midiEnabled}
+			<div class="container mx-auto px-4 pb-3">
+				<div class="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
 					<p>{midiError || 'WebMidi is not enabled. Please refresh to try again.'}</p>
 				</div>
-			{/if}
+			</div>
+		{/if}
 
-			<!-- Key Signature Panel (Below Navigation) -->
-			<div class="header-content mt-2 flex flex-wrap gap-1.5 rounded-lg border bg-gray-50 p-2">
+		<!-- Key Signature Panel (Below Navigation) -->
+		<div class="container mx-auto px-4 pb-4">
+			<div class="flex flex-wrap gap-1.5 rounded-lg border bg-gray-50/50 p-2 shadow-sm">
 				<div class="relative">
 					<button
-						class="flex items-center gap-1 rounded bg-blue-500 px-3 py-1.5 text-sm font-medium text-white"
+						class="flex items-center gap-1 rounded bg-blue-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-600 transition-colors"
 						on:click={toggleKeyMenu}
 					>
-						{currentSignature.id}
+						<span class="flex items-center gap-1">
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+							</svg>
+							Key: {currentSignature.id}
+						</span>
 						<svg
 							class="ml-1 h-4 w-4"
 							fill="currentColor"
@@ -877,16 +869,16 @@
 				</div>
 			</div>
 		</div>
-	</header>
+	</nav>
 
 	<!-- Fixed layout with scrollable content and fixed bottom keyboard -->
 	<div class="flex flex-1 overflow-hidden">
 		<!-- Main scrollable content area -->
 		<div class="flex-1 overflow-hidden">
-			<!-- Scrollable saved chords -->
+			<!-- Scrollable saved chords with padding at the bottom -->
 			<div
 				bind:this={chordsContainerElement}
-				class="h-full overflow-y-auto pb-[280px]"
+				class="h-full overflow-y-auto pb-48"
 				id="chord-container"
 			>
 				<!-- Increased padding to make room for both keyboard and sheet -->
@@ -921,7 +913,7 @@
 						<!-- Insertion indicator at the beginning -->
 						<div
 							id="insert-marker-top"
-							class="insertion-marker relative my-3 flex items-center justify-center"
+							class="insertion-marker relative my-3 flex items-center justify-center opacity-0 transition-opacity duration-200"
 							class:active={currentChordId === 'top'}
 							class:hidden={currentChordId !== 'top'}
 						>
@@ -954,68 +946,65 @@
 									Key: <span class="font-medium text-gray-700">{chord.signature.id}</span>
 								</div>
 
-								<!-- Primary visualization based on view mode -->
-								<div class="flex w-full">
-									<div class="flex-1">
-										{#if viewMode === 'keyboard'}
-											<Piano notes={chord.notes} readonly={true} compact={true} showLabels={true} />
-										{:else}
-											<SheetMusic notes={chord.notes} signature={chord.signature} />
-											<!-- Add ChordDisplay for saved chords -->
-											<ChordDisplay notes={chord.notes} signature={chord.signature} />
-										{/if}
+								<!-- Primary visualization - always show both -->
+								<div class="flex w-full flex-col">
+									<div class="flex-1 mb-2">
+										<Piano notes={chord.notes} readonly={true} compact={true} showLabels={true} />
 									</div>
-
+									
+									<div class="flex-1">
+										<SheetMusic notes={chord.notes} signature={chord.signature} />
+										<ChordDisplay notes={chord.notes} signature={chord.signature} />
+									</div>
+									
 									<!-- Chord reference for saved chords -->
-									{#if viewMode === 'sheet'}
-										<div class="ml-2 w-80 border-l pl-2">
-											<table class="w-full text-xs">
-												<tbody>
-													<tr>
-														<td class="bg-blue-50 px-1 py-0.5 text-xs font-medium">Major</td>
-														{#each generateScaleChords(chord.signature).major as sheetChord, i}
-															<td
-																class="py-0.5 text-center text-xs"
-																class:bg-blue-100={i === 0 || i === 3 || i === 4}
-																class:bg-green-200={findMatchingChordsForSaved(
-																	chord.notes
-																).majorMatches.includes(i)}
-																class:font-bold={findMatchingChordsForSaved(
-																	chord.notes
-																).majorMatches.includes(i)}
-															>
-																{sheetChord}
-															</td>
-														{/each}
-													</tr>
-													<tr class="border-t">
-														<td class="bg-blue-50 px-1 py-0.5 text-xs font-medium">Minor</td>
-														{#each generateScaleChords(chord.signature).minor as sheetChord, i}
-															<td
-																class="py-0.5 text-center text-xs"
-																class:bg-blue-100={i === 0 || i === 3 || i === 4}
-																class:bg-green-200={findMatchingChordsForSaved(
-																	chord.notes
-																).minorMatches.includes(i)}
-																class:font-bold={findMatchingChordsForSaved(
-																	chord.notes
-																).minorMatches.includes(i)}
-															>
-																{sheetChord}
-															</td>
-														{/each}
-													</tr>
-												</tbody>
-											</table>
-										</div>
-									{/if}
+									<div class="mt-2 border-t pt-2">
+										<table class="w-full text-xs">
+											<tbody>
+												<tr>
+													<td class="bg-blue-50 px-1 py-0.5 text-xs font-medium">Major</td>
+													{#each generateScaleChords(chord.signature).major as sheetChord, i}
+														<td
+															class="py-0.5 text-center text-xs"
+															class:bg-blue-100={i === 0 || i === 3 || i === 4}
+															class:bg-green-200={findMatchingChordsForSaved(
+																chord.notes
+															).majorMatches.includes(i)}
+															class:font-bold={findMatchingChordsForSaved(
+																chord.notes
+															).majorMatches.includes(i)}
+														>
+															{sheetChord}
+														</td>
+													{/each}
+												</tr>
+												<tr class="border-t">
+													<td class="bg-blue-50 px-1 py-0.5 text-xs font-medium">Minor</td>
+													{#each generateScaleChords(chord.signature).minor as sheetChord, i}
+														<td
+															class="py-0.5 text-center text-xs"
+															class:bg-blue-100={i === 0 || i === 3 || i === 4}
+															class:bg-green-200={findMatchingChordsForSaved(
+																chord.notes
+															).minorMatches.includes(i)}
+															class:font-bold={findMatchingChordsForSaved(
+																chord.notes
+															).minorMatches.includes(i)}
+														>
+															{sheetChord}
+														</td>
+													{/each}
+												</tr>
+											</tbody>
+										</table>
+									</div>
 								</div>
 							</div>
 
 							<!-- Insertion marker after each chord -->
 							<div
 								id={`insert-marker-${chord.id}`}
-								class="insertion-marker relative my-3 flex items-center justify-center"
+								class="insertion-marker relative my-3 flex items-center justify-center opacity-0 transition-opacity duration-200"
 								class:active={currentChordId === chord.id}
 								class:hidden={currentChordId !== chord.id}
 							>
@@ -1060,139 +1049,131 @@
 
 	<!-- Sticky player UI at the bottom of the screen - always shows both keyboard and sheet music -->
 	<div
-		class="sticky bottom-0 z-20 border-t bg-white pb-3 pt-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]"
+		class="fixed bottom-0 left-0 w-full z-20 border-t bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]"
 	>
-		<div class="container mx-auto px-4">
-			<div class="mb-3 flex items-center justify-between">
-				<div>
-					<!-- Save button -->
-					<button
-						class="flex items-center gap-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-all duration-150 hover:bg-blue-600 hover:shadow-md active:bg-blue-700 active:scale-95"
-						on:click={saveCurrentChord}
-					>
-						<i class="fas fa-save"></i>
-						<span class="ml-1.5">Save Chord</span>
-						<span class="ml-1 rounded bg-blue-600/80 px-1.5 py-0.5 text-xs font-medium">Space</span>
-					</button>
-				</div>
-
-				<!-- Current insertion point indicator -->
-				{#if currentChordId}
-					<div class="flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs text-blue-700">
-						<span>
-							{#if currentChordId === 'top'}
-								Adding at beginning
-							{:else}
-								Adding after selected chord
-							{/if}
-						</span>
-						<button
-							class="ml-2 rounded-full bg-blue-100 p-1 text-blue-700 hover:bg-blue-200"
-							on:click={() => setCurrentChord(null)}
-						>
-							<i class="fas fa-times text-xs"></i>
-						</button>
-					</div>
-				{:else}
-					<div class="text-xs text-gray-500">Adding at end</div>
-				{/if}
-
-				<div>
-					<!-- Currently playing indicator -->
-					<span class="text-xs font-medium text-gray-600">
-						{activeNotes.length > 0 ? activeNotes.length + ' notes playing' : 'No notes playing'}
-					</span>
-				</div>
+		<!-- ChordDisplay Panel with toggle button -->
+		<div class="bg-white border-t border-gray-200 shadow-md">
+			<div class="px-4 pt-1 pb-0 flex justify-center items-center">
+				<!-- Toggle button at the top center -->
+				<button 
+					class="flex items-center justify-center h-7 w-20 rounded-t-lg bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors -mt-2 border border-gray-200 border-b-0 shadow-sm z-10"
+					on:click={toggleChordPanel}
+					aria-label={isChordPanelCollapsed ? "Expand chord panel" : "Collapse chord panel"}
+					title={isChordPanelCollapsed ? "Show chord information" : "Hide chord information"}
+				>
+					<i class="fas fa-{isChordPanelCollapsed ? 'chevron-down' : 'chevron-up'} mr-1"></i>
+					<span class="text-xs">{isChordPanelCollapsed ? "Show" : "Hide"}</span>
+				</button>
 			</div>
-
-			<!-- Sheet music display with chord reference table -->
-			<div class="mb-3 min-h-[80px] border-b pb-3">
-				<div class="flex">
-					<div class="flex-1">
+			
+			<div class="px-4 py-2">
+				<div class="transition-all duration-300 overflow-hidden"
+					class:max-h-0={isChordPanelCollapsed}
+					class:opacity-0={isChordPanelCollapsed}
+					class:max-h-[500px]={!isChordPanelCollapsed}
+					class:opacity-100={!isChordPanelCollapsed}
+				>
+					<div class="flex flex-col space-y-4">
+						<!-- Sheet Music -->
 						{#if activeNotes.length > 0}
 							<SheetMusic notes={activeNotes} signature={currentSignature} />
-							<!-- Add ChordDisplay component for active notes -->
-							<ChordDisplay notes={activeNotes} signature={currentSignature} debug={true} />
 						{:else}
-							<div
-								class="flex h-full min-h-[80px] items-center justify-center text-sm text-gray-400"
-							>
+							<div class="flex h-[80px] items-center justify-center text-sm text-gray-400">
 								Play notes to see sheet music
 							</div>
 						{/if}
-					</div>
-
-					<!-- Chord Reference Table - shown alongside sheet music -->
-					<div class="ml-4 mt-2 flex w-80 flex-col rounded-lg border bg-white p-3 shadow-sm">
-						<h3 class="mb-2 border-b pb-1 text-sm font-medium text-gray-700">
-							Key: {currentSignature.label}
-						</h3>
-
-						<div class="overflow-hidden rounded border">
-							<table class="w-full text-sm">
-								<thead class="bg-gray-50 text-xs font-medium text-gray-700">
-									<tr>
-										<th class="py-1 pl-2 text-left">Scale</th>
-										<th class="py-1 text-center">I</th>
-										<th class="py-1 text-center">II</th>
-										<th class="py-1 text-center">III</th>
-										<th class="py-1 text-center">IV</th>
-										<th class="py-1 text-center">V</th>
-										<th class="py-1 text-center">VI</th>
-										<th class="py-1 text-center">VII</th>
-									</tr>
-								</thead>
-								<tbody>
-									<tr class="border-t">
-										<td class="bg-blue-50 px-2 py-1 text-xs font-medium">Major</td>
-										{#each scaleChords.major as chord, i}
-											<td
-												class="py-1 text-center text-xs"
-												class:bg-blue-100={i === 0 || i === 3 || i === 4}
-												class:bg-green-200={matchingChords.majorMatches.includes(i)}
-												class:font-bold={matchingChords.majorMatches.includes(i)}
-											>
-												{chord}
-											</td>
-										{/each}
-									</tr>
-									<tr class="border-t">
-										<td class="bg-blue-50 px-2 py-1 text-xs font-medium">Minor</td>
-										{#each scaleChords.minor as chord, i}
-											<td
-												class="py-1 text-center text-xs"
-												class:bg-blue-100={i === 0 || i === 3 || i === 4}
-												class:bg-green-200={matchingChords.minorMatches.includes(i)}
-												class:font-bold={matchingChords.minorMatches.includes(i)}
-											>
-												{chord}
-											</td>
-										{/each}
-									</tr>
-								</tbody>
-							</table>
-						</div>
-
-						<div class="mt-2 text-xs text-gray-500">
-							<div class="mb-1 flex items-center">
-								<span class="mr-2 h-3 w-3 rounded-full bg-blue-100"></span>
-								<span>Major chords: I, IV, V</span>
+						
+						<!-- Chord Detection & Reference Table in two columns on larger screens, stacked on smaller screens -->
+						<div class="flex flex-col sm:flex-row gap-4">
+							<!-- Left: Chord Detection -->
+							<div class="flex-1">
+								{#if activeNotes.length > 0}
+									<ChordDisplay notes={activeNotes} signature={currentSignature} debug={false} />
+								{:else}
+									<div class="rounded-lg bg-gray-50 p-4 text-center text-sm text-gray-400">
+										Play notes to detect chords
+									</div>
+								{/if}
 							</div>
-							<div class="flex items-center">
-								<span class="mr-2 h-3 w-3 rounded-full bg-blue-100"></span>
-								<span>Minor chords: i, iv, v</span>
+							
+							<!-- Right: Chord Reference Table -->
+							<div class="flex-1 flex w-full flex-col rounded-lg border bg-white p-3 shadow-sm">
+								<h3 class="mb-2 border-b pb-1 text-sm font-medium text-gray-700">
+									Key: {currentSignature.label}
+								</h3>
+
+								<div class="overflow-hidden rounded border">
+									<table class="w-full text-sm">
+										<thead class="bg-gray-50 text-xs font-medium text-gray-700">
+											<tr>
+												<th class="py-1 pl-2 text-left">Scale</th>
+												<th class="py-1 text-center">I</th>
+												<th class="py-1 text-center">II</th>
+												<th class="py-1 text-center">III</th>
+												<th class="py-1 text-center">IV</th>
+												<th class="py-1 text-center">V</th>
+												<th class="py-1 text-center">VI</th>
+												<th class="py-1 text-center">VII</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr class="border-t">
+												<td class="bg-blue-50 px-2 py-1 text-xs font-medium">Major</td>
+												{#each scaleChords.major as chord, i}
+													<td
+														class="py-1 text-center text-xs"
+														class:bg-blue-100={i === 0 || i === 3 || i === 4}
+														class:bg-green-200={matchingChords.majorMatches.includes(i)}
+														class:font-bold={matchingChords.majorMatches.includes(i)}
+													>
+														{chord}
+													</td>
+												{/each}
+											</tr>
+											<tr class="border-t">
+												<td class="bg-blue-50 px-2 py-1 text-xs font-medium">Minor</td>
+												{#each scaleChords.minor as chord, i}
+													<td
+														class="py-1 text-center text-xs"
+														class:bg-blue-100={i === 0 || i === 3 || i === 4}
+														class:bg-green-200={matchingChords.minorMatches.includes(i)}
+														class:font-bold={matchingChords.minorMatches.includes(i)}
+													>
+														{chord}
+													</td>
+												{/each}
+											</tr>
+										</tbody>
+									</table>
+								</div>
+
+								<div class="mt-2 text-xs text-gray-500">
+									<div class="flex items-center gap-3">
+										<div class="flex items-center">
+											<span class="mr-1 h-3 w-3 rounded-full bg-blue-100"></span>
+											<span>Primary (I,IV,V)</span>
+										</div>
+										<div class="flex items-center">
+											<span class="mr-1 h-3 w-3 rounded-full bg-green-200"></span>
+											<span>Playing</span>
+										</div>
+									</div>
+								</div>
 							</div>
 						</div>
 					</div>
 				</div>
 			</div>
-
-			<!-- Always show the piano keyboard -->
-			<div class="piano-wrapper">
-				<Piano notes={activeNotes} on:notePress={handlePianoNotePress} />
-			</div>
+		</div>
+		
+		<!-- Always visible piano -->
+		<div class="bg-white border-t border-gray-100 shadow-md px-4 py-3">
+			<Piano notes={activeNotes} on:notePress={handlePianoNotePress} />
 		</div>
 	</div>
+
+	<!-- Spacer to account for fixed piano panel -->
+	<div class="h-80"></div>
 </div>
 
 <style>
@@ -1219,43 +1200,13 @@
 	}
 
 	.insertion-marker {
-		height: 2rem;
-		position: relative;
-		margin: 0.5rem 0;
+		opacity: 0;
+		transition-property: opacity;
+		transition-duration: 150ms;
 	}
-
-	.insertion-marker .insertion-line {
-		position: absolute;
-		left: 0;
-		right: 0;
-		height: 2px;
-		background-color: #e5e7eb;
-		top: 50%;
-		transform: translateY(-50%);
-	}
-
-	.insertion-marker.active .insertion-line {
-		@apply h-[2px] bg-blue-300;
-	}
-
-	.insertion-marker .marker-icon {
-		position: absolute;
-		top: 50%;
-		transform: translate(-50%, -50%);
-		width: 28px;
-		height: 28px;
-		background-color: white;
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-		cursor: pointer;
-		z-index: 5;
-	}
-
-	.insertion-marker.active .marker-icon {
-		@apply h-8 w-8 bg-blue-500 text-white shadow-md;
+	
+	.insertion-marker.active {
+		opacity: 1;
 	}
 
 	.focus-icon {

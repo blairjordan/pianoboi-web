@@ -401,13 +401,4 @@
 	}
 </script>
 
-<div class="sheet-music w-full" bind:this={container}></div>
-
-<style>
-	.sheet-music {
-		min-height: 200px;
-		background: white;
-		border-radius: 4px;
-		overflow: hidden;
-	}
-</style>
+<div class="sheet-music w-full min-h-[200px] bg-white rounded-md overflow-hidden" bind:this={container}></div>

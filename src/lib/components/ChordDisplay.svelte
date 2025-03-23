@@ -93,30 +93,5 @@
 				{/each}
 			</div>
 		{/if}
-
-		<div class="mt-4">
-			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-				<div>
-					<h4 class="mb-1 text-sm font-medium text-gray-700">Major Key Chords</h4>
-					<div class="flex flex-wrap gap-1">
-						{#each majorChords as chord}
-							<span class="rounded bg-gray-200 px-2 py-0.5 text-xs">
-								{chord}
-							</span>
-						{/each}
-					</div>
-				</div>
-				<div>
-					<h4 class="mb-1 text-sm font-medium text-gray-700">Minor Key Chords</h4>
-					<div class="flex flex-wrap gap-1">
-						{#each minorChords as chord}
-							<span class="rounded bg-gray-200 px-2 py-0.5 text-xs">
-								{chord}
-							</span>
-						{/each}
-					</div>
-				</div>
-			</div>
-		</div>
 	</div>
 </div>

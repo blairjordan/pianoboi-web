@@ -1,71 +1,7 @@
-/* Piano Styles */
+/* Essential Piano Styles - things that are hard to do with Tailwind */
 
-.piano-container {
-	background-color: hsl(24, 10%, 90%);
-	margin: 2rem;
-	font-family: Arial, Helvetica, sans-serif;
-}
-
-.config {
-	margin-bottom: 20px;
-}
-
-.config select {
-	padding: 8px;
-	border-radius: 4px;
-	border: 1px solid #ccc;
-	background-color: white;
-	font-size: 14px;
-	min-width: 200px;
-}
-
-.midi-device-select {
-	margin-left: 20px;
-	display: inline-block;
-}
-
-.midi-device-select select {
-	padding: 8px;
-	border-radius: 4px;
-	border: 1px solid #ccc;
-	background-color: white;
-	font-size: 14px;
-	min-width: 200px;
-}
-
-div.sheetmusic {
-	display: inline-block;
-	text-align: initial;
-}
-
-.key-display table {
-	width: 100%;
-	border-collapse: collapse;
-	margin-bottom: 2rem;
-}
-
-td:first-child,
-th:first-child {
-	padding-left: 0;
-}
-
-td,
-th {
-	border-bottom: 0.1rem solid #e1e1e1;
-	padding: 1.2rem 1.5rem;
-	text-align: left;
-}
-
-.highlight {
-	background: rgb(0, 61, 141);
-	color: white;
-}
-
-#piano {
-	position: relative;
-	margin: 2em 0 0 0;
-	width: 1200px;
-	border-radius: 10px;
+/* Some complex box-shadow styles that are cumbersome in Tailwind */
+.piano-shadow {
 	box-shadow:
 		0 1px 0 #999,
 		0 2px 0 #999,
@@ -76,62 +12,6 @@ th {
 		4px 7px 0 #999,
 		5px 8px 0 #999,
 		0 0 8px #000;
-	overflow: auto;
-}
-
-#piano .keys {
-	width: 2548px;
-	padding: 2px 0 0 2px;
-	overflow: hidden;
-	background: #000;
-	border-radius: 0 0 4px 4px;
-}
-
-.keys .key {
-	float: left;
-	position: relative;
-	width: 50px;
-	height: 180px;
-	margin: 0 2px 2px 0;
-	background: #fff;
-	border-radius: 0 0 4px 4px;
-}
-
-.key.pressed,
-.key:active {
-	background: rgb(0, 61, 141);
-	box-shadow:
-		inset 3px 2px 3px rgb(0, 42, 97),
-		inset -3px 2px 3px rgb(0, 42, 97);
-}
-
-.key.black {
-	width: 0;
-	margin: 0;
-	z-index: 2;
-}
-
-.key.black:after {
-	content: '';
-	position: absolute;
-	top: -2px;
-	left: -16px;
-	display: block;
-	width: 32px;
-	height: 117px;
-	background: #000;
-	border-radius: 0 0 4px 4px;
-	box-shadow:
-		1px 1px 0 #555,
-		2px 2px 0 #555;
-}
-
-.key.black1:after {
-	left: -20px;
-}
-
-.key.black3:after {
-	left: -16px;
 }
 
 .key.black.pressed:after,
@@ -142,9 +22,11 @@ th {
 		inset -3px 2px 3px rgb(0, 60, 139);
 }
 
-#sheetmusic {
-	margin-top: 2rem;
-	width: 100%;
-	height: 200px;
-	overflow: hidden;
+/* Special complex selectors that might be harder to express in Tailwind */
+.key.black1:after {
+	left: -20px;
+}
+
+.key.black3:after {
+	left: -16px;
 }
