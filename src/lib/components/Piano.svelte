@@ -15,6 +15,10 @@
 	// State
 	let activeKeys: string[] = [];
 	let container: HTMLDivElement;
+	// Track which keys are currently being pressed with the mouse
+	let mouseDownKeys: Set<string> = new Set();
+	// Track whether the mouse button is down
+	let isMouseDown = false;
 
 	// Update active keys when notes change
 	$: {
@@ -100,6 +104,17 @@
 		if (readonly) return; // Ignore if in readonly mode
 
 		console.log('Note press:', note, accidental, octave, isOn);
+
+		// Get a unique key identifier
+		const keyId = `${note.toLowerCase()}${accidental}${octave}`;
+
+		// Track key state in mouseDownKeys
+		if (isOn) {
+			mouseDownKeys.add(keyId);
+		} else {
+			mouseDownKeys.delete(keyId);
+		}
+
 		dispatch('notePress', {
 			name: note,
 			accidental,
@@ -111,26 +126,64 @@
 	function handleMouseDown(event: MouseEvent, note: string, accidental: string, octave: number) {
 		if (readonly) return; // Ignore if in readonly mode
 
+		// Set global mouse state
+		isMouseDown = true;
+
 		// Add focus to ensure we get blur events
 		const target = event.currentTarget as HTMLDivElement;
 		target.focus();
 
+		// Track this specific key
+		const keyId = `${note.toLowerCase()}${accidental}${octave}`;
+		mouseDownKeys.add(keyId);
+
 		handleNotePress(note, accidental, octave, true);
+
+		// Add global mouse up handler
+		window.addEventListener('mouseup', handleGlobalMouseUp, { once: true });
 	}
 
 	function handleMouseUp(event: MouseEvent, note: string, accidental: string, octave: number) {
 		if (readonly) return; // Ignore if in readonly mode
 
-		handleNotePress(note, accidental, octave, false);
+		isMouseDown = false;
+
+		// Only release if this key was actually being pressed
+		const keyId = `${note.toLowerCase()}${accidental}${octave}`;
+		if (mouseDownKeys.has(keyId)) {
+			mouseDownKeys.delete(keyId);
+			handleNotePress(note, accidental, octave, false);
+		}
+	}
+
+	function handleGlobalMouseUp() {
+		isMouseDown = false;
+
+		// Convert Set to Array for iteration
+		Array.from(mouseDownKeys).forEach((keyId) => {
+			// Parse the key ID back into components
+			const match = keyId.match(/([a-g])(#|b)?(\d+)/);
+			if (match) {
+				const [_, note, accidental = '', octave] = match;
+				handleNotePress(note.toUpperCase(), accidental, parseInt(octave), false);
+			}
+		});
+
+		// Clear the set
+		mouseDownKeys.clear();
 	}
 
 	function handleMouseLeave(event: MouseEvent, note: string, accidental: string, octave: number) {
 		if (readonly) return; // Ignore if in readonly mode
 
-		// Only turn off if the button was already pressed
-		const keyId = `${note.toLowerCase()}${accidental}${octave}`;
-		if (activeKeys.includes(keyId)) {
-			handleNotePress(note, accidental, octave, false);
+		// Only turn off if mouse button is released
+		// This prevents keys from releasing when slightly moving the mouse
+		if (!isMouseDown) {
+			const keyId = `${note.toLowerCase()}${accidental}${octave}`;
+			if (mouseDownKeys.has(keyId)) {
+				mouseDownKeys.delete(keyId);
+				handleNotePress(note, accidental, octave, false);
+			}
 		}
 	}
 
@@ -151,6 +204,11 @@
 				container.scrollLeft = scrollToPosition;
 			}
 		}, 50);
+
+		// Clean up event listeners
+		return () => {
+			window.removeEventListener('mouseup', handleGlobalMouseUp);
+		};
 	});
 </script>
 
@@ -159,6 +217,7 @@
 		class="piano-container scrollbar-width-thin flex select-none overflow-x-auto pb-2 pt-1"
 		bind:this={container}
 		class:non-interactive={readonly}
+		class:compact-container={compact}
 	>
 		{#each displayOctaves as octave}
 			<div class="octave-container relative flex">
@@ -256,6 +315,11 @@
 	.piano-wrapper {
 		max-width: 100%;
 		position: relative;
+	}
+
+	.compact-container {
+		max-width: 100%;
+		overflow-x: hidden !important;
 	}
 
 	@media (max-width: 640px) {
