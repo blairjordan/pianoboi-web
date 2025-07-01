@@ -68,7 +68,7 @@
 				{/each}
 			</div>
 		{:else}
-			<p class="mt-1 text-xs text-gray-500">No notes detected. Play some notes to see them here.</p>
+			<p class="mt-1 leading-5 text-xs text-gray-500">No notes detected. Play some notes to see them here.</p>
 		{/if}
 	</div>
 </div>
