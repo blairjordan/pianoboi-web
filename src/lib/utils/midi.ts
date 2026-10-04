@@ -52,9 +52,14 @@ export function setupMidiListeners(
 		console.warn('Error removing listeners:', e);
 	}
 
-	// Set up note listeners
-	selectedInput.channels[1].addListener('noteon', handleNoteOn);
-	selectedInput.channels[1].addListener('noteoff', handleNoteOff);
+	// Set up note listeners. A disconnected or stale device can briefly have no channels.
+	const firstChannel = selectedInput.channels?.[1];
+	if (!firstChannel) {
+		console.warn(`MIDI input ${selectedInput.name} is not ready yet`);
+		return;
+	}
+	firstChannel.addListener('noteon', handleNoteOn);
+	firstChannel.addListener('noteoff', handleNoteOff);
 
 	console.log('MIDI listeners set up for', selectedInput.name);
 }

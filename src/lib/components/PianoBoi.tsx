@@ -52,6 +52,9 @@ export default function PianoBoi() {
 	const [showChordPanel, setShowChordPanel] = useState(
 		() => localStorage.getItem('pianoboi-show-chord-panel') !== 'false'
 	);
+	const [isPianoCompact, setIsPianoCompact] = useState(
+		() => localStorage.getItem('pianoboi-compact-piano') === 'true'
+	);
 	const [savedChords, setSavedChords] = useState<SavedChord[]>([]);
 	const [chordSets, setChordSets] = useState<ChordSet[]>([]);
 	const [currentSetId, setCurrentSetId] = useState<string | null>(null);
@@ -80,7 +83,14 @@ export default function PianoBoi() {
 		setMidiEnabled(result.midiEnabled);
 		setMidiInputs(result.midiInputs);
 		setMidiError(result.midiError);
-		setSelectedInput((current) => current || result.midiInputs[0] || null);
+		setSelectedInput((current) => {
+			if (!current) return result.midiInputs[0] || null;
+			return (
+				result.midiInputs.find((input) => input.id === current.id || input.name === current.name) ||
+				result.midiInputs[0] ||
+				null
+			);
+		});
 		setIsInitializing(false);
 	}, []);
 
@@ -284,6 +294,14 @@ export default function PianoBoi() {
 		});
 	};
 
+	const togglePianoSize = () => {
+		setIsPianoCompact((isCompact) => {
+			const nextValue = !isCompact;
+			localStorage.setItem('pianoboi-compact-piano', String(nextValue));
+			return nextValue;
+		});
+	};
+
 	return (
 		<div className="flex h-screen flex-col">
 			<header className="sticky top-0 z-30 bg-white shadow-md">
@@ -386,8 +404,8 @@ export default function PianoBoi() {
 
 			<div className="sticky bottom-0 z-20 border-t bg-white pt-1 pb-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
 				<div className="container mx-auto px-4">
-					<div className="mb-2 flex items-center justify-between">
-						<div className="flex items-center gap-2">
+					<div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+						<div className="flex flex-wrap items-center gap-2">
 							<button
 								type="button"
 								className="flex items-center gap-1 rounded-lg bg-blue-500 px-2 py-1 text-xs font-medium text-white shadow-sm transition-all duration-150 hover:bg-blue-600 active:scale-95"
@@ -407,6 +425,15 @@ export default function PianoBoi() {
 							>
 								<i className={`fas ${showChordPanel ? 'fa-eye-slash' : 'fa-eye'}`} />
 								{showChordPanel ? 'Hide Chords' : 'Show Chords'}
+							</button>
+							<button
+								type="button"
+								className="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+								onClick={togglePianoSize}
+								title={isPianoCompact ? 'Restore the full-size piano' : 'Use a smaller piano'}
+							>
+								<i className={`fas ${isPianoCompact ? 'fa-expand' : 'fa-compress'}`} />
+								{isPianoCompact ? 'Full Piano' : 'Compact Piano'}
 							</button>
 						</div>
 						{currentChordId ? (
@@ -450,6 +477,7 @@ export default function PianoBoi() {
 					)}
 					<Piano
 						notes={activeNotes}
+						compact={isPianoCompact}
 						showLabels
 						signature={currentSignature}
 						onNotePress={handlePianoNotePress}
