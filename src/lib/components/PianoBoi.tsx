@@ -24,7 +24,9 @@ import {
 	type ChordSet,
 	type SavedChord
 } from '../utils/chords';
+import { startChordSequence } from '../utils/chordSequence';
 import { disableWebMidi, initializeWebMidi, setupMidiListeners } from '../utils/midi';
+import { createScratchpadApi } from '../utils/scratchpad';
 import ChordDisplay from './ChordDisplay';
 import ChordScaleReference from './ChordScaleReference';
 import ChordSetManager from './ChordSetManager';
@@ -32,6 +34,7 @@ import KeySignatureSelector from './KeySignatureSelector';
 import MidiDeviceSelector from './MidiDeviceSelector';
 import Piano from './Piano';
 import SavedChordsList from './SavedChordsList';
+import Scratchpad from './Scratchpad';
 import SheetMusic from './SheetMusic';
 import ViewModeSwitcher from './ViewModeSwitcher';
 
@@ -55,17 +58,23 @@ export default function PianoBoi() {
 	const [isPianoCompact, setIsPianoCompact] = useState(
 		() => localStorage.getItem('pianoboi-compact-piano') === 'true'
 	);
+	const [showScratchpad, setShowScratchpad] = useState(
+		() => localStorage.getItem('pianoboi-show-scratchpad') === 'true'
+	);
 	const [savedChords, setSavedChords] = useState<SavedChord[]>([]);
 	const [chordSets, setChordSets] = useState<ChordSet[]>([]);
 	const [currentSetId, setCurrentSetId] = useState<string | null>(null);
 	const [currentChordId, setCurrentChordIdState] = useState<string | null>(null);
 	const [playingChordId, setPlayingChordId] = useState<string | null>(null);
+	const [isPlayingAll, setIsPlayingAll] = useState(false);
 
 	const chordsContainerRef = useRef<HTMLDivElement>(null);
 	const audioContextRef = useRef<AudioContext | null>(null);
 	const pianoSamplesRef = useRef<Record<string, AudioBuffer>>({});
 	const activeAudioNodesRef = useRef<Record<string, AudioNodes>>({});
 	const playingAudioNodesRef = useRef<Array<{ note: number; nodes: AudioNodes }>>([]);
+	const noteStartTimeoutsRef = useRef<number[]>([]);
+	const cancelSequenceRef = useRef<(() => void) | null>(null);
 
 	const scaleChords = useMemo(() => generateScaleChords(currentSignature), [currentSignature]);
 	const matchingChords = useMemo(
@@ -76,6 +85,19 @@ export default function PianoBoi() {
 		() => Chord.detect(extractPitchClasses(activeNotes)),
 		[activeNotes]
 	);
+	const visibleSavedChords = useMemo(
+		() =>
+			currentSetId ? savedChords.filter((chord) => chord.setId === currentSetId) : savedChords,
+		[currentSetId, savedChords]
+	);
+
+	useEffect(() => {
+		const api = createScratchpadApi();
+		window.pianoboiScratchpad = api;
+		return () => {
+			if (window.pianoboiScratchpad === api) delete window.pianoboiScratchpad;
+		};
+	}, []);
 
 	const initMidi = useCallback(async () => {
 		setIsInitializing(true);
@@ -94,18 +116,27 @@ export default function PianoBoi() {
 		setIsInitializing(false);
 	}, []);
 
-	const stopChord = useCallback(() => {
+	const stopChordSound = useCallback(() => {
+		noteStartTimeoutsRef.current.forEach((timeout) => window.clearTimeout(timeout));
+		noteStartTimeoutsRef.current = [];
 		playingAudioNodesRef.current.forEach((item) => stopNote(item.nodes));
 		playingAudioNodesRef.current = [];
 		setPlayingChordId(null);
 	}, []);
 
+	const stopSequence = useCallback(() => {
+		cancelSequenceRef.current?.();
+		cancelSequenceRef.current = null;
+		setIsPlayingAll(false);
+		stopChordSound();
+	}, [stopChordSound]);
+
 	const clearActiveNotes = useCallback(() => {
 		setActiveNotes([]);
-		stopChord();
+		stopSequence();
 		Object.values(activeAudioNodesRef.current).forEach(stopNote);
 		activeAudioNodesRef.current = {};
-	}, [stopChord]);
+	}, [stopSequence]);
 
 	useEffect(() => {
 		const loaded = loadSavedChords();
@@ -128,7 +159,9 @@ export default function PianoBoi() {
 		}
 		return () => {
 			disableWebMidi();
+			cancelSequenceRef.current?.();
 			Object.values(activeAudioNodesRef.current).forEach(stopNote);
+			noteStartTimeoutsRef.current.forEach((timeout) => window.clearTimeout(timeout));
 			playingAudioNodesRef.current.forEach((item) => stopNote(item.nodes));
 			if (audioContextRef.current?.state !== 'closed') void audioContextRef.current?.close();
 		};
@@ -243,15 +276,17 @@ export default function PianoBoi() {
 		setCurrentChord(newChord.id);
 	}, [activeNotes, chordSets, currentChordId, currentSetId, currentSignature, setCurrentChord]);
 
-	const playChord = useCallback(
+	const playChordSound = useCallback(
 		(chord: SavedChord) => {
-			stopChord();
+			stopChordSound();
 			setPlayingChordId(chord.id);
 			const audioContext = audioContextRef.current;
-			if (!audioContext) return;
+			if (!audioContext) {
+				return;
+			}
 			if (audioContext.state === 'suspended') void audioContext.resume();
 			chord.notes.forEach((note, index) => {
-				window.setTimeout(() => {
+				const timeout = window.setTimeout(() => {
 					let midiNote =
 						typeof note === 'number'
 							? note
@@ -260,11 +295,35 @@ export default function PianoBoi() {
 					midiNote = Math.max(21, Math.min(108, midiNote));
 					const nodes = playNote(midiNote, audioContext, pianoSamplesRef.current, samplesLoaded);
 					if (nodes) playingAudioNodesRef.current.push({ note: midiNote, nodes });
+					noteStartTimeoutsRef.current = noteStartTimeoutsRef.current.filter(
+						(item) => item !== timeout
+					);
 				}, index * 10);
+				noteStartTimeoutsRef.current.push(timeout);
 			});
 		},
-		[samplesLoaded, stopChord]
+		[samplesLoaded, stopChordSound]
 	);
+
+	const playChord = useCallback(
+		(chord: SavedChord) => {
+			stopSequence();
+			playChordSound(chord);
+		},
+		[playChordSound, stopSequence]
+	);
+
+	const playAllChords = useCallback(() => {
+		if (!visibleSavedChords.length) return;
+		stopSequence();
+		const sequence = [...visibleSavedChords];
+		setIsPlayingAll(true);
+		cancelSequenceRef.current = startChordSequence(sequence, playChordSound, () => {
+			cancelSequenceRef.current = null;
+			setIsPlayingAll(false);
+			stopChordSound();
+		});
+	}, [playChordSound, stopChordSound, stopSequence, visibleSavedChords]);
 
 	useEffect(() => {
 		const handleKeyDown = (event: KeyboardEvent) => {
@@ -302,6 +361,11 @@ export default function PianoBoi() {
 		});
 	};
 
+	const setScratchpadVisible = (isVisible: boolean) => {
+		setShowScratchpad(isVisible);
+		localStorage.setItem('pianoboi-show-scratchpad', String(isVisible));
+	};
+
 	return (
 		<div className="flex h-screen flex-col">
 			<header className="sticky top-0 z-30 bg-white shadow-md">
@@ -317,39 +381,60 @@ export default function PianoBoi() {
 								chordSets={chordSets}
 								currentSetId={currentSetId}
 								savedChordCount={savedChords.length}
-								onSelect={setCurrentSetId}
+								onSelect={(setId) => {
+									stopSequence();
+									setCurrentSetId(setId);
+								}}
 								onDelete={(setId) => {
 									const result = deleteChordSet(setId, chordSets, savedChords, currentSetId);
 									setChordSets(result.updatedSets);
+									stopSequence();
 									setCurrentSetId(result.newCurrentSetId);
 									persist(result.updatedChords, result.updatedSets);
 								}}
 								onCreate={(name) => {
 									const result = createChordSet(name, chordSets);
 									setChordSets(result.updatedSets);
+									stopSequence();
 									setCurrentSetId(result.newSet.id);
 									persistSavedChords(savedChords, result.updatedSets);
 								}}
 							/>
 						</div>
-						<MidiDeviceSelector
-							midiEnabled={midiEnabled}
-							midiInputs={midiInputs}
-							selectedInput={selectedInput}
-							midiError={midiError}
-							isInitializing={isInitializing}
-							onSelect={setSelectedInput}
-							onRefresh={() => {
-								setSelectedInput(null);
-								setActiveNotes([]);
-								void initMidi();
-							}}
-						/>
+						<div className="flex items-center gap-2">
+							<button
+								type="button"
+								className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-medium shadow-sm ${
+									showScratchpad
+										? 'border-blue-300 bg-blue-50 text-blue-700'
+										: 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+								}`}
+								onClick={() => setScratchpadVisible(!showScratchpad)}
+								aria-expanded={showScratchpad}
+								aria-controls="learning-scratchpad"
+							>
+								<i className="fas fa-note-sticky" />
+								Scratchpad
+							</button>
+							<MidiDeviceSelector
+								midiEnabled={midiEnabled}
+								midiInputs={midiInputs}
+								selectedInput={selectedInput}
+								midiError={midiError}
+								isInitializing={isInitializing}
+								onSelect={setSelectedInput}
+								onRefresh={() => {
+									setSelectedInput(null);
+									setActiveNotes([]);
+									void initMidi();
+								}}
+							/>
+						</div>
 					</div>
 				</div>
 			</header>
 
-			<div className="flex flex-1 overflow-hidden">
+			<div className="relative flex flex-1 overflow-hidden">
 				<div className="flex-1 overflow-hidden">
 					<div
 						ref={chordsContainerRef}
@@ -362,25 +447,34 @@ export default function PianoBoi() {
 							currentSetId={currentSetId}
 							currentChordId={currentChordId}
 							playingChordId={playingChordId}
+							isPlayingAll={isPlayingAll}
 							viewMode={viewMode}
 							onSetCurrentChord={setCurrentChord}
 							onDeleteChord={(id) => {
-								if (playingChordId === id) stopChord();
+								if (playingChordId === id) stopSequence();
 								persist(savedChords.filter((chord) => chord.id !== id));
 								clearActiveNotes();
 								if (currentChordId === id) setCurrentChordIdState(null);
 							}}
 							onPlayChord={playChord}
+							onPlayAll={playAllChords}
+							onStopAll={stopSequence}
 							onAssignToSet={(chordId, setId) =>
 								persist(assignChordToSet(chordId, setId, savedChords))
 							}
 							onClearChords={(setId) => {
 								persist(setId ? savedChords.filter((chord) => chord.setId !== setId) : []);
+								stopSequence();
 								setCurrentChordIdState(null);
 							}}
 						/>
 					</div>
 				</div>
+				{showScratchpad && (
+					<div id="learning-scratchpad" className="contents">
+						<Scratchpad onClose={() => setScratchpadVisible(false)} />
+					</div>
+				)}
 			</div>
 
 			<button

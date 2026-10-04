@@ -11,10 +11,13 @@ interface Props {
 	currentSetId: string | null;
 	currentChordId: string | null;
 	playingChordId: string | null;
+	isPlayingAll: boolean;
 	viewMode: 'keyboard' | 'sheet';
 	onSetCurrentChord: (id: string | null) => void;
 	onDeleteChord: (id: string) => void;
 	onPlayChord: (chord: SavedChord) => void;
+	onPlayAll: () => void;
+	onStopAll: () => void;
 	onAssignToSet: (chordId: string, setId: string | null) => void;
 	onClearChords: (setId: string | null) => void;
 }
@@ -25,10 +28,13 @@ export default function SavedChordsList({
 	currentSetId,
 	currentChordId,
 	playingChordId,
+	isPlayingAll,
 	viewMode,
 	onSetCurrentChord,
 	onDeleteChord,
 	onPlayChord,
+	onPlayAll,
+	onStopAll,
 	onAssignToSet,
 	onClearChords
 }: Props) {
@@ -71,18 +77,31 @@ export default function SavedChordsList({
 
 	return (
 		<div className="space-y-2 p-2">
-			<div className="flex items-center justify-between">
+			<div className="flex flex-wrap items-center justify-between gap-2">
 				<h2 className="text-base font-bold text-gray-800">
 					{currentSetName} ({filteredChords.length}{' '}
 					{filteredChords.length === 1 ? 'chord' : 'chords'})
 				</h2>
-				<button
-					type="button"
-					className="rounded bg-red-500 px-2 py-0.5 text-xs font-medium text-white hover:bg-red-600"
-					onClick={() => onClearChords(currentSetId)}
-				>
-					Clear {currentSetId ? 'Set' : 'All'}
-				</button>
+				<div className="flex items-center gap-2">
+					<button
+						type="button"
+						className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold text-white ${
+							isPlayingAll ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-500 hover:bg-blue-600'
+						}`}
+						onClick={isPlayingAll ? onStopAll : onPlayAll}
+						aria-label={isPlayingAll ? 'Stop chord sequence' : `Play all ${currentSetName} chords`}
+					>
+						<i className={`fas ${isPlayingAll ? 'fa-stop' : 'fa-play'}`} />
+						{isPlayingAll ? 'Stop' : 'Play All'}
+					</button>
+					<button
+						type="button"
+						className="rounded bg-red-500 px-2 py-1 text-xs font-medium text-white hover:bg-red-600"
+						onClick={() => onClearChords(currentSetId)}
+					>
+						Clear {currentSetId ? 'Set' : 'All'}
+					</button>
+				</div>
 			</div>
 			{marker('top')}
 			{filteredChords.map((chord) => {
