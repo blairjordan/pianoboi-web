@@ -34,6 +34,8 @@ window.pianoboiAgent.scratchpad.append('Then play <Key>F4</Key>.');`
 
 export default function AgentInstructions({ onClose }: Props) {
 	const [copyStatus, setCopyStatus] = useState('Copy all instructions');
+	const [agentUpdate, setAgentUpdate] = useState('');
+	const [applyStatus, setApplyStatus] = useState('');
 
 	const copyInstructions = async () => {
 		try {
@@ -42,6 +44,35 @@ export default function AgentInstructions({ onClose }: Props) {
 			window.setTimeout(() => setCopyStatus('Copy all instructions'), 1600);
 		} catch {
 			setCopyStatus('Copy failed');
+		}
+	};
+
+	const applyAgentUpdate = () => {
+		try {
+			const api = window.pianoboiAgent;
+			if (!api) throw new Error('The page API is not ready.');
+			const payload = JSON.parse(agentUpdate) as {
+				chords?: Parameters<typeof api.chords.replaceAll>[0];
+				scratchpad?: string;
+				appendScratchpad?: string;
+			};
+			let changed = 0;
+			if (payload.chords) {
+				api.chords.replaceAll(payload.chords);
+				changed += payload.chords.length;
+			}
+			if (typeof payload.scratchpad === 'string') {
+				api.scratchpad.set(payload.scratchpad);
+				changed += 1;
+			}
+			if (typeof payload.appendScratchpad === 'string') {
+				api.scratchpad.append(payload.appendScratchpad);
+				changed += 1;
+			}
+			if (!changed) throw new Error('Include chords, scratchpad, or appendScratchpad.');
+			setApplyStatus(`Applied ${changed} update${changed === 1 ? '' : 's'}.`);
+		} catch (error) {
+			setApplyStatus(error instanceof Error ? error.message : 'Could not apply the update.');
 		}
 	};
 
@@ -111,6 +142,37 @@ export default function AgentInstructions({ onClose }: Props) {
 								<code>window.pianoboiAgent.storageKeys</code> lists the backing localStorage keys.
 							</li>
 						</ul>
+					</section>
+
+					<section className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+						<h3 className="font-bold text-emerald-950">Browser agent bridge</h3>
+						<p className="mt-1 text-xs text-emerald-800">
+							For browser tools that cannot call page globals, paste one JSON update here. Chords
+							are replaced in order and the open app updates immediately.
+						</p>
+						<label className="mt-3 block text-xs font-semibold text-emerald-950">
+							Agent update JSON
+							<textarea
+								className="mt-1 min-h-32 w-full resize-y rounded-lg border border-emerald-300 bg-white p-3 font-mono text-xs font-normal text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+								value={agentUpdate}
+								onChange={(event) => setAgentUpdate(event.target.value)}
+								placeholder={
+									'{"chords":[{"notes":["C4","E4","G4"],"signatureId":"C"}],"scratchpad":"# Notes"}'
+								}
+							/>
+						</label>
+						<div className="mt-2 flex items-center justify-between gap-3">
+							<span role="status" className="text-xs text-emerald-900">
+								{applyStatus}
+							</span>
+							<button
+								type="button"
+								className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800"
+								onClick={applyAgentUpdate}
+							>
+								Apply browser-memory update
+							</button>
+						</div>
 					</section>
 				</div>
 
