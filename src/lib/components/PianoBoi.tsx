@@ -49,6 +49,9 @@ export default function PianoBoi() {
 	const [audioReady, setAudioReady] = useState(false);
 	const [loadingProgress, setLoadingProgress] = useState(0);
 	const [viewMode, setViewMode] = useState<'keyboard' | 'sheet'>('keyboard');
+	const [showChordPanel, setShowChordPanel] = useState(
+		() => localStorage.getItem('pianoboi-show-chord-panel') !== 'false'
+	);
 	const [savedChords, setSavedChords] = useState<SavedChord[]>([]);
 	const [chordSets, setChordSets] = useState<ChordSet[]>([]);
 	const [currentSetId, setCurrentSetId] = useState<string | null>(null);
@@ -273,6 +276,14 @@ export default function PianoBoi() {
 		persistSavedChords(nextChords, nextSets);
 	};
 
+	const toggleChordPanel = () => {
+		setShowChordPanel((isVisible) => {
+			const nextValue = !isVisible;
+			localStorage.setItem('pianoboi-show-chord-panel', String(nextValue));
+			return nextValue;
+		});
+	};
+
 	return (
 		<div className="flex h-screen flex-col">
 			<header className="sticky top-0 z-30 bg-white shadow-md">
@@ -376,16 +387,28 @@ export default function PianoBoi() {
 			<div className="sticky bottom-0 z-20 border-t bg-white pt-1 pb-2 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
 				<div className="container mx-auto px-4">
 					<div className="mb-2 flex items-center justify-between">
-						<button
-							type="button"
-							className="flex items-center gap-1 rounded-lg bg-blue-500 px-2 py-1 text-xs font-medium text-white shadow-sm transition-all duration-150 hover:bg-blue-600 active:scale-95"
-							onClick={saveCurrentChord}
-							title="Save the current chord (Space)"
-						>
-							<i className="fas fa-save" />
-							<span className="ml-1">Save Chord</span>
-							<span className="ml-1 rounded bg-blue-600/80 px-1 py-0.5">Space</span>
-						</button>
+						<div className="flex items-center gap-2">
+							<button
+								type="button"
+								className="flex items-center gap-1 rounded-lg bg-blue-500 px-2 py-1 text-xs font-medium text-white shadow-sm transition-all duration-150 hover:bg-blue-600 active:scale-95"
+								onClick={saveCurrentChord}
+								title="Save the current chord (Space)"
+							>
+								<i className="fas fa-save" />
+								<span className="ml-1">Save Chord</span>
+								<span className="ml-1 rounded bg-blue-600/80 px-1 py-0.5">Space</span>
+							</button>
+							<button
+								type="button"
+								className="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+								onClick={toggleChordPanel}
+								aria-expanded={showChordPanel}
+								aria-controls="chord-panel"
+							>
+								<i className={`fas ${showChordPanel ? 'fa-eye-slash' : 'fa-eye'}`} />
+								{showChordPanel ? 'Hide Chords' : 'Show Chords'}
+							</button>
+						</div>
 						{currentChordId ? (
 							<div className="flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700">
 								<span>
@@ -409,20 +432,22 @@ export default function PianoBoi() {
 							{activeNotes.length ? `${activeNotes.length} notes playing` : 'No notes playing'}
 						</span>
 					</div>
-					<div className="mb-2 min-h-[70px] border-b pb-2">
-						<div className="flex flex-col gap-2 sm:flex-row">
-							<div className="flex-1">
-								<SheetMusic notes={activeNotes} signature={currentSignature} />
-								<ChordDisplay notes={activeNotes} signature={currentSignature} />
+					{showChordPanel && (
+						<div id="chord-panel" className="mb-2 min-h-[70px] border-b pb-2">
+							<div className="flex flex-col gap-2 sm:flex-row">
+								<div className="flex-1">
+									<SheetMusic notes={activeNotes} signature={currentSignature} />
+									<ChordDisplay notes={activeNotes} signature={currentSignature} />
+								</div>
+								<ChordScaleReference
+									signature={currentSignature}
+									notes={activeNotes}
+									detectedChords={currentChords}
+									matchingChords={matchingChords}
+								/>
 							</div>
-							<ChordScaleReference
-								signature={currentSignature}
-								notes={activeNotes}
-								detectedChords={currentChords}
-								matchingChords={matchingChords}
-							/>
 						</div>
-					</div>
+					)}
 					<Piano
 						notes={activeNotes}
 						showLabels
