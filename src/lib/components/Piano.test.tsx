@@ -25,12 +25,15 @@ describe('Piano', () => {
 		});
 	});
 
-	test('renders compact mode as a centered keyboard overview', () => {
+	test('renders compact mode as a full-width abstract pitch ribbon', () => {
 		const { container } = render(<Piano overview showLabels signature={signatures[0]} />);
+		const ribbon = screen.getByTestId('pitch-ribbon');
 		const middleC = within(container).getByRole('button', { name: 'C4' });
-		expect(middleC).toHaveClass('h-12', 'w-[0.65rem]');
+		expect(ribbon).toHaveClass('w-full');
+		expect(within(ribbon).getAllByRole('button')).toHaveLength(84);
+		expect(container.querySelector('.white-key')).not.toBeInTheDocument();
+		expect(container.querySelector('.black-key')).not.toBeInTheDocument();
 		expect(middleC).toHaveTextContent('');
-		expect(middleC.parentElement?.parentElement).toHaveClass('mx-auto');
 	});
 
 	test('keeps saved-chord compact mode readable and labelled', () => {
