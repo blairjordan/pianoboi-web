@@ -359,6 +359,26 @@ export default function PianoBoi() {
 		[playChordSound, stopSequence]
 	);
 
+	const playScratchpadChord = useCallback(
+		(noteNames: string[]) => {
+			const midiNotes = noteNames.flatMap((noteName) => {
+				const match = noteName.trim().match(/^([A-Ga-g])([#b]?)(-?\d+)$/);
+				if (!match) return [];
+				return [calculateMidiFromName(`${match[1].toUpperCase()}${match[2]}`, Number(match[3]))];
+			});
+			if (!midiNotes.length) return;
+			stopSequence();
+			playChordSound({
+				id: `scratchpad-${noteNames.join('-')}`,
+				notes: midiNotes,
+				signature: currentSignature,
+				timestamp: Date.now(),
+				setId: null
+			});
+		},
+		[currentSignature, playChordSound, stopSequence]
+	);
+
 	const playAllChords = useCallback(() => {
 		if (!visibleSavedChords.length) return;
 		stopSequence();
@@ -526,7 +546,10 @@ export default function PianoBoi() {
 				</div>
 				{showScratchpad && (
 					<div id="learning-scratchpad" className="contents">
-						<Scratchpad onClose={() => setScratchpadVisible(false)} />
+						<Scratchpad
+							onClose={() => setScratchpadVisible(false)}
+							onPlayChord={playScratchpadChord}
+						/>
 					</div>
 				)}
 			</div>

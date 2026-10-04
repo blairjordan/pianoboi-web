@@ -47,4 +47,18 @@ describe('Scratchpad', () => {
 		});
 		expect(screen.getByText('Updated elsewhere')).toBeInTheDocument();
 	});
+
+	test('plays an inline chord with its rendered note names', () => {
+		const onPlayChord = vi.fn();
+		render(
+			<ScratchpadMarkdown
+				content={'Try <Chord name="C major"><Keys>C4 E4 G4</Keys></Chord>'}
+				onPlayChord={onPlayChord}
+			/>
+		);
+
+		const chord = screen.getByRole('button', { name: 'Play C major chord' });
+		chord.click();
+		expect(onPlayChord).toHaveBeenCalledWith(['C4', 'E4', 'G4']);
+	});
 });

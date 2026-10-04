@@ -8,6 +8,7 @@ import {
 
 interface Props {
 	onClose: () => void;
+	onPlayChord?: (notes: string[]) => void;
 }
 
 const customComponentPattern =
@@ -30,11 +31,15 @@ function KeyPill({ note }: { note: string }) {
 	);
 }
 
-function Keys({ value }: { value: string }) {
-	const notes = value
+function parseKeys(value: string): string[] {
+	return value
 		.trim()
 		.split(/[\s,]+/)
 		.filter(Boolean);
+}
+
+function Keys({ value }: { value: string }) {
+	const notes = parseKeys(value);
 	return (
 		<span className="inline-flex flex-wrap items-center gap-0.5">
 			{notes.map((note, index) => (
@@ -44,18 +49,40 @@ function Keys({ value }: { value: string }) {
 	);
 }
 
-function ChordPill({ name, children }: { name: string; children: string }) {
+function ChordPill({
+	name,
+	children,
+	onPlay
+}: {
+	name: string;
+	children: string;
+	onPlay?: (notes: string[]) => void;
+}) {
 	const keysMatch = children.match(/<Keys\s*>([\s\S]*?)<\/Keys>/i);
-	const notes = keysMatch?.[1] || children.replace(/<[^>]+>/g, '').trim();
+	const notesText = keysMatch?.[1] || children.replace(/<[^>]+>/g, '').trim();
+	const notes = parseKeys(notesText);
+	const chordName = name || 'Chord';
 	return (
-		<span className="mx-0.5 inline-flex max-w-full flex-wrap items-center gap-1 rounded-lg border border-violet-200 bg-violet-50 px-2 py-1 align-middle text-violet-900">
-			<span className="text-xs font-bold">{name || 'Chord'}</span>
-			{notes ? <Keys value={notes} /> : null}
-		</span>
+		<button
+			type="button"
+			className="mx-0.5 inline-flex max-w-full cursor-pointer flex-wrap items-center gap-1 rounded-lg border border-violet-200 bg-violet-50 px-2 py-1 align-middle text-violet-900 transition hover:border-violet-400 hover:bg-violet-100 active:scale-[0.98]"
+			onClick={() => onPlay?.(notes)}
+			disabled={!onPlay || notes.length === 0}
+			aria-label={`Play ${chordName} chord`}
+			title={`Play ${chordName}`}
+		>
+			<i className="fas fa-play text-[0.6rem] text-violet-500" aria-hidden="true" />
+			<span className="text-xs font-bold">{chordName}</span>
+			{notes.length ? <Keys value={notesText} /> : null}
+		</button>
 	);
 }
 
-function renderScratchpadInline(value: string, keyPrefix = 'inline'): ReactNode[] {
+function renderScratchpadInline(
+	value: string,
+	keyPrefix = 'inline',
+	onPlayChord?: (notes: string[]) => void
+): ReactNode[] {
 	const nodes: ReactNode[] = [];
 	let lastIndex = 0;
 	let match: RegExpExecArray | null;
@@ -65,7 +92,14 @@ function renderScratchpadInline(value: string, keyPrefix = 'inline'): ReactNode[
 		if (match.index > lastIndex) nodes.push(value.slice(lastIndex, match.index));
 		const key = `${keyPrefix}-${match.index}`;
 		if (match[1].startsWith('<Chord')) {
-			nodes.push(<ChordPill key={key} name={match[2] || match[3] || ''} children={match[4]} />);
+			nodes.push(
+				<ChordPill
+					key={key}
+					name={match[2] || match[3] || ''}
+					children={match[4]}
+					onPlay={onPlayChord}
+				/>
+			);
 		} else if (match[1].startsWith('<Keys')) {
 			nodes.push(<Keys key={key} value={match[8]} />);
 		} else if (match[5] !== undefined || match[6] !== undefined) {
@@ -104,7 +138,13 @@ function renderScratchpadInline(value: string, keyPrefix = 'inline'): ReactNode[
 	return nodes;
 }
 
-export function ScratchpadMarkdown({ content }: { content: string }) {
+export function ScratchpadMarkdown({
+	content,
+	onPlayChord
+}: {
+	content: string;
+	onPlayChord?: (notes: string[]) => void;
+}) {
 	const blocks = useMemo(() => {
 		const lines = content.replace(/\r\n/g, '\n').split('\n');
 		const output: ReactNode[] = [];
@@ -127,7 +167,7 @@ export function ScratchpadMarkdown({ content }: { content: string }) {
 							: 'text-sm font-bold text-gray-800';
 				output.push(
 					<div key={`heading-${index}`} role="heading" aria-level={level} className={className}>
-						{renderScratchpadInline(heading[2], `heading-${index}`)}
+						{renderScratchpadInline(heading[2], `heading-${index}`, onPlayChord)}
 					</div>
 				);
 				index += 1;
@@ -143,7 +183,9 @@ export function ScratchpadMarkdown({ content }: { content: string }) {
 				output.push(
 					<ul key={`list-${index}`} className="list-disc space-y-1 pl-5">
 						{items.map((item, itemIndex) => (
-							<li key={itemIndex}>{renderScratchpadInline(item, `list-${index}-${itemIndex}`)}</li>
+							<li key={itemIndex}>
+								{renderScratchpadInline(item, `list-${index}-${itemIndex}`, onPlayChord)}
+							</li>
 						))}
 					</ul>
 				);
@@ -156,7 +198,7 @@ export function ScratchpadMarkdown({ content }: { content: string }) {
 						key={`quote-${index}`}
 						className="border-l-2 border-blue-300 pl-3 text-gray-600 italic"
 					>
-						{renderScratchpadInline(line.slice(2), `quote-${index}`)}
+						{renderScratchpadInline(line.slice(2), `quote-${index}`, onPlayChord)}
 					</blockquote>
 				);
 				index += 1;
@@ -165,18 +207,18 @@ export function ScratchpadMarkdown({ content }: { content: string }) {
 
 			output.push(
 				<p key={`paragraph-${index}`} className="leading-6">
-					{renderScratchpadInline(line, `paragraph-${index}`)}
+					{renderScratchpadInline(line, `paragraph-${index}`, onPlayChord)}
 				</p>
 			);
 			index += 1;
 		}
 		return output;
-	}, [content]);
+	}, [content, onPlayChord]);
 
 	return <div className="space-y-3 text-sm text-gray-700">{blocks}</div>;
 }
 
-export default function Scratchpad({ onClose }: Props) {
+export default function Scratchpad({ onClose, onPlayChord }: Props) {
 	const [content, setContent] = useState(readScratchpad);
 	const [isEditing, setIsEditing] = useState(false);
 
@@ -237,7 +279,7 @@ export default function Scratchpad({ onClose }: Props) {
 						/>
 					</label>
 				) : content.trim() ? (
-					<ScratchpadMarkdown content={content} />
+					<ScratchpadMarkdown content={content} onPlayChord={onPlayChord} />
 				) : (
 					<div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
 						<p className="font-semibold text-gray-800">Nothing here yet</p>
