@@ -486,7 +486,7 @@ export function stopNote(nodes: any) {
 					if (nodes.source && nodes.source.stop) {
 						nodes.source.stop();
 					}
-				} catch (e) {
+				} catch {
 					// Ignore errors if already stopped
 				}
 			}, 100);
@@ -504,7 +504,7 @@ export function stopNote(nodes: any) {
 					if (nodes.subOscillator && nodes.subOscillator.stop) {
 						nodes.subOscillator.stop();
 					}
-				} catch (e) {
+				} catch {
 					// Ignore errors if already stopped
 				}
 			}, 100);

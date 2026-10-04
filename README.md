@@ -2,12 +2,11 @@
 
 Save piano chords and organize them into sets.
 
-
 Visit [pianoboi.site](https://pianoboi.site/) to see it in action.
 
 ## Developing
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Install dependencies and start the React/Vite development server:
 
 ```bash
 npm run dev
@@ -15,8 +14,10 @@ npm run dev
 
 ## Building
 
-To create a production version of your app:
+To type-check, test, and create a production version of the app:
 
 ```bash
+npm run check
+npm test
 npm run build
 ```

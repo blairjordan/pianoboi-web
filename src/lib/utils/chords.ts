@@ -1,6 +1,6 @@
 // Chord utilities for PianoBoi
-import type { Signature } from '$lib/types/signatures';
-import { signatures } from '$lib/types/signatures';
+import type { Signature } from '../types/signatures';
+import { signatures } from '../types/signatures';
 import { Chord } from '@tonaljs/tonal';
 import { calculateNoteNumber } from './audio';
 
@@ -190,7 +190,7 @@ export function getNoteProperty(note: any, prop: string, defaultValue: any = '')
 			return note[`_${prop}`];
 		}
 		return defaultValue;
-	} catch (err) {
+	} catch {
 		console.error(`Error accessing ${prop} of note:`, note);
 		return defaultValue;
 	}
