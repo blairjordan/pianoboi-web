@@ -5,6 +5,7 @@ interface PianoProps {
 	notes?: any[];
 	readonly?: boolean;
 	compact?: boolean;
+	overview?: boolean;
 	showLabels?: boolean;
 	signature: Signature;
 	onNotePress?: (note: { name: string; accidental: string; octave: number; isOn: boolean }) => void;
@@ -31,6 +32,7 @@ export default function Piano({
 	notes = [],
 	readonly = false,
 	compact = false,
+	overview = false,
 	showLabels = false,
 	signature,
 	onNotePress
@@ -74,7 +76,7 @@ export default function Piano({
 			container.scrollLeft = Math.max(0, (container.scrollWidth - container.clientWidth) / 2);
 		});
 		return () => window.cancelAnimationFrame(frame);
-	}, [compact]);
+	}, [compact, overview]);
 
 	const emit = (name: string, accidental: string, octave: number, isOn: boolean) => {
 		if (!readonly) onNotePress?.({ name, accidental, octave, isOn });
@@ -86,7 +88,7 @@ export default function Piano({
 				ref={containerRef}
 				className={`piano-keyboard flex overflow-x-auto pt-1 pb-2 select-none ${readonly ? 'pointer-events-none' : ''}`}
 			>
-				<div className={`flex min-w-max ${compact ? 'mx-auto' : ''}`}>
+				<div className={`flex min-w-max ${overview ? 'mx-auto' : ''}`}>
 					{octaves.map((octave) => (
 						<div className="relative flex" key={octave}>
 							{naturalKeys.map((note) => {
@@ -96,13 +98,13 @@ export default function Piano({
 										key={keyId}
 										type="button"
 										aria-label={`${note}${octave}`}
-										className={`white-key flex cursor-pointer items-end justify-center border border-gray-300 ${activeKeys.includes(keyId) ? 'active' : 'bg-white'} ${compact ? 'h-12 w-[0.65rem]' : 'h-32 w-[1.8rem] pb-2'}`}
+										className={`white-key flex cursor-pointer items-end justify-center border border-gray-300 ${activeKeys.includes(keyId) ? 'active' : 'bg-white'} ${overview ? 'h-12 w-[0.65rem]' : compact ? 'h-20 w-[1.4rem] pb-2' : 'h-32 w-[1.8rem] pb-2'}`}
 										onMouseDown={() => emit(note, '', octave, true)}
 										onMouseUp={() => emit(note, '', octave, false)}
 										onMouseLeave={() => activeKeys.includes(keyId) && emit(note, '', octave, false)}
 										onBlur={() => emit(note, '', octave, false)}
 									>
-										{!compact && showLabels && (
+										{!overview && showLabels && (
 											<span className="text-xs font-semibold text-gray-400">{note}</span>
 										)}
 									</button>
@@ -114,15 +116,15 @@ export default function Piano({
 								const accidental = isFlatKey ? 'b' : '#';
 								const baseNote = isFlatKey ? displayNote[0] : note;
 								const keyId = `${baseNote.toLowerCase()}${accidental}${octave}`;
-								const width = compact ? '0.42rem' : '1.1rem';
-								const keyWidth = compact ? '0.65rem' : '1.8rem';
-								const inset = compact ? '0.44rem' : '1.25rem';
+								const width = overview ? '0.42rem' : compact ? '0.9rem' : '1.1rem';
+								const keyWidth = overview ? '0.65rem' : compact ? '1.4rem' : '1.8rem';
+								const inset = overview ? '0.44rem' : compact ? '0.95rem' : '1.25rem';
 								return (
 									<button
 										key={keyId}
 										type="button"
 										aria-label={`${displayNote}${octave}`}
-										className={`black-key absolute top-0 z-10 cursor-pointer text-white ${activeKeys.includes(keyId) ? 'active' : 'bg-gray-800'} ${compact ? 'h-7' : 'h-20'}`}
+										className={`black-key absolute top-0 z-10 cursor-pointer text-white ${activeKeys.includes(keyId) ? 'active' : 'bg-gray-800'} ${overview ? 'h-7' : compact ? 'h-12' : 'h-20'}`}
 										style={{ left: `calc(${offset} * ${keyWidth} + ${inset})`, width }}
 										onMouseDown={() => emit(baseNote, accidental, octave, true)}
 										onMouseUp={() => emit(baseNote, accidental, octave, false)}
@@ -131,7 +133,7 @@ export default function Piano({
 										}
 										onBlur={() => emit(baseNote, accidental, octave, false)}
 									>
-										{!compact && showLabels && (
+										{!overview && showLabels && (
 											<span className="absolute right-0 bottom-2 left-0 text-center text-[0.6rem] font-medium">
 												{displayNote}
 											</span>

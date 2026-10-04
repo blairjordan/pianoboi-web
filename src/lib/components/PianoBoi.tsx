@@ -477,7 +477,7 @@ export default function PianoBoi() {
 					)}
 					<Piano
 						notes={activeNotes}
-						compact={isPianoCompact}
+						overview={isPianoCompact}
 						showLabels
 						signature={currentSignature}
 						onNotePress={handlePianoNotePress}

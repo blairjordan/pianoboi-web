@@ -26,10 +26,17 @@ describe('Piano', () => {
 	});
 
 	test('renders compact mode as a centered keyboard overview', () => {
-		const { container } = render(<Piano compact showLabels signature={signatures[0]} />);
+		const { container } = render(<Piano overview showLabels signature={signatures[0]} />);
 		const middleC = within(container).getByRole('button', { name: 'C4' });
 		expect(middleC).toHaveClass('h-12', 'w-[0.65rem]');
 		expect(middleC).toHaveTextContent('');
 		expect(middleC.parentElement?.parentElement).toHaveClass('mx-auto');
+	});
+
+	test('keeps saved-chord compact mode readable and labelled', () => {
+		const { container } = render(<Piano compact showLabels signature={signatures[0]} />);
+		const middleC = within(container).getByRole('button', { name: 'C4' });
+		expect(middleC).toHaveClass('h-20', 'w-[1.4rem]');
+		expect(middleC).toHaveTextContent('C');
 	});
 });
