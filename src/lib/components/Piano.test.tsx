@@ -25,14 +25,14 @@ describe('Piano', () => {
 		});
 	});
 
-	test('renders compact mode as a full-width abstract pitch ribbon', () => {
+	test('renders compact mode as a full-width compressed black-and-white keyboard', () => {
 		const { container } = render(<Piano overview showLabels signature={signatures[0]} />);
-		const ribbon = screen.getByTestId('pitch-ribbon');
+		const keyboard = screen.getByTestId('compact-keyboard');
 		const middleC = within(container).getByRole('button', { name: 'C4' });
-		expect(ribbon).toHaveClass('w-full');
-		expect(within(ribbon).getAllByRole('button')).toHaveLength(84);
-		expect(container.querySelector('.white-key')).not.toBeInTheDocument();
-		expect(container.querySelector('.black-key')).not.toBeInTheDocument();
+		expect(keyboard).toHaveClass('w-full', 'h-14');
+		expect(within(keyboard).getAllByRole('button')).toHaveLength(84);
+		expect(container.querySelectorAll('.white-key')).toHaveLength(49);
+		expect(container.querySelectorAll('.black-key')).toHaveLength(35);
 		expect(middleC).toHaveTextContent('');
 	});
 

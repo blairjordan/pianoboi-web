@@ -20,20 +20,6 @@ const blackKeyPositions = [
 	{ note: 'G', offset: 4 },
 	{ note: 'A', offset: 5 }
 ];
-const chromaticNotes = [
-	{ name: 'C', accidental: '', isAccidental: false },
-	{ name: 'C', accidental: '#', isAccidental: true },
-	{ name: 'D', accidental: '', isAccidental: false },
-	{ name: 'D', accidental: '#', isAccidental: true },
-	{ name: 'E', accidental: '', isAccidental: false },
-	{ name: 'F', accidental: '', isAccidental: false },
-	{ name: 'F', accidental: '#', isAccidental: true },
-	{ name: 'G', accidental: '', isAccidental: false },
-	{ name: 'G', accidental: '#', isAccidental: true },
-	{ name: 'A', accidental: '', isAccidental: false },
-	{ name: 'A', accidental: '#', isAccidental: true },
-	{ name: 'B', accidental: '', isAccidental: false }
-];
 const flatKeyMapping: Record<string, string> = {
 	'C#': 'Db',
 	'D#': 'Eb',
@@ -97,65 +83,53 @@ export default function Piano({
 	};
 
 	if (overview) {
-		const ribbonNotes = octaves.flatMap((octave) =>
-			chromaticNotes.map((note, pitchClassIndex) => {
-				const sharpName = `${note.name}${note.accidental}`;
-				const displayName = isFlatKey && note.isAccidental ? flatKeyMapping[sharpName] : sharpName;
-				const name = isFlatKey && note.isAccidental ? displayName[0] : note.name;
-				const accidental = isFlatKey && note.isAccidental ? 'b' : note.accidental;
-				return {
-					...note,
-					name,
-					accidental,
-					displayName,
-					octave,
-					pitchClassIndex,
-					keyId: `${name.toLowerCase()}${accidental}${octave}`
-				};
-			})
-		);
-
 		return (
-			<div className="w-full px-1 py-1" data-testid="pitch-ribbon">
-				<div
-					className="grid h-9 w-full gap-px overflow-hidden rounded-lg border border-slate-300 bg-slate-300 p-px shadow-inner"
-					style={{ gridTemplateColumns: `repeat(${ribbonNotes.length}, minmax(0, 1fr))` }}
-					aria-label="Compact chromatic pitch ribbon"
-				>
-					{ribbonNotes.map((note) => {
-						const isActive = activeKeys.includes(note.keyId);
-						return (
-							<button
-								key={note.keyId}
-								type="button"
-								aria-label={`${note.displayName}${note.octave}`}
-								className={`relative min-w-0 transition-all duration-75 hover:brightness-110 ${
-									note.name === 'C' && !note.accidental ? 'border-l-2 border-l-blue-300' : ''
-								} ${
-									isActive
-										? 'z-10 scale-y-110 shadow-[0_0_8px_rgba(59,130,246,0.85)] outline outline-1 outline-white'
-										: 'opacity-75'
-								}`}
-								style={{
-									backgroundColor: `hsl(${note.pitchClassIndex * 30} ${isActive ? 82 : 42}% ${
-										isActive ? 52 : note.isAccidental ? 62 : 76
-									}%)`
-								}}
-								onMouseDown={() => emit(note.name, note.accidental, note.octave, true)}
-								onMouseUp={() => emit(note.name, note.accidental, note.octave, false)}
-								onMouseLeave={() =>
-									isActive && emit(note.name, note.accidental, note.octave, false)
-								}
-								onBlur={() => emit(note.name, note.accidental, note.octave, false)}
-							/>
-						);
-					})}
-				</div>
-				<div className="mt-0.5 flex justify-between px-0.5 text-[0.6rem] font-medium tracking-wide text-slate-400 uppercase">
-					<span>Low</span>
-					<span>{activeKeys.length ? `${activeKeys.length} active` : 'Pitch ribbon'}</span>
-					<span>High</span>
-				</div>
+			<div
+				className={`piano-keyboard flex h-14 w-full overflow-hidden rounded-md border border-gray-300 bg-white select-none ${readonly ? 'pointer-events-none' : ''}`}
+				data-testid="compact-keyboard"
+				aria-label="Compact piano keyboard"
+			>
+				{octaves.map((octave) => (
+					<div className="relative grid min-w-0 flex-1 grid-cols-7" key={octave}>
+						{naturalKeys.map((note) => {
+							const keyId = `${note.toLowerCase()}${octave}`;
+							return (
+								<button
+									key={keyId}
+									type="button"
+									aria-label={`${note}${octave}`}
+									className={`white-key min-w-0 border-r border-gray-300 last:border-r-0 ${activeKeys.includes(keyId) ? 'active' : 'bg-white hover:bg-blue-50'}`}
+									onMouseDown={() => emit(note, '', octave, true)}
+									onMouseUp={() => emit(note, '', octave, false)}
+									onMouseLeave={() => activeKeys.includes(keyId) && emit(note, '', octave, false)}
+									onBlur={() => emit(note, '', octave, false)}
+								/>
+							);
+						})}
+						{blackKeyPositions.map(({ note, offset }) => {
+							const sharpNote = `${note}#`;
+							const displayNote = isFlatKey ? flatKeyMapping[sharpNote] : sharpNote;
+							const accidental = isFlatKey ? 'b' : '#';
+							const baseNote = isFlatKey ? displayNote[0] : note;
+							const keyId = `${baseNote.toLowerCase()}${accidental}${octave}`;
+							return (
+								<button
+									key={keyId}
+									type="button"
+									aria-label={`${displayNote}${octave}`}
+									className={`black-key absolute top-0 z-10 h-[62%] w-[9%] rounded-b-sm border border-black ${activeKeys.includes(keyId) ? 'active' : 'bg-gray-900 hover:bg-gray-700'}`}
+									style={{ left: `${((offset + 1) / 7) * 100 - 4.5}%` }}
+									onMouseDown={() => emit(baseNote, accidental, octave, true)}
+									onMouseUp={() => emit(baseNote, accidental, octave, false)}
+									onMouseLeave={() =>
+										activeKeys.includes(keyId) && emit(baseNote, accidental, octave, false)
+									}
+									onBlur={() => emit(baseNote, accidental, octave, false)}
+								/>
+							);
+						})}
+					</div>
+				))}
 			</div>
 		);
 	}
