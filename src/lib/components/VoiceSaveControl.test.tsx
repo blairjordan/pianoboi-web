@@ -73,6 +73,16 @@ describe('VoiceSaveControl', () => {
 		expect(screen.getByRole('status')).toHaveTextContent('Listening — say “save”');
 	});
 
+	test('uses the same compact sizing as the surrounding toolbar controls', () => {
+		installRecognitionApi();
+		render(<VoiceSaveControl onSave={vi.fn()} />);
+		expect(screen.getByRole('button', { name: 'Start voice save' })).toHaveClass(
+			'px-2',
+			'py-1',
+			'text-xs'
+		);
+	});
+
 	test('saves once for a final save command and ignores interim or duplicate results', () => {
 		installRecognitionApi();
 		const onSave = vi.fn();

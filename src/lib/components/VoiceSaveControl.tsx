@@ -31,13 +31,13 @@ export default function VoiceSaveControl({
 				aria-pressed={isEnabled}
 				disabled={disabled || !isSupported}
 				onClick={isEnabled ? stop : start}
-				className={`rounded-lg border px-3 py-2 text-sm font-medium shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+				className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-medium shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
 					isEnabled
 						? 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100'
 						: 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
 				}`}
 			>
-				<i className={`fas ${isEnabled ? 'fa-microphone-slash' : 'fa-microphone'} mr-2`} />
+				<i className={`fas ${isEnabled ? 'fa-microphone-slash' : 'fa-microphone'}`} />
 				{isEnabled ? 'Stop voice save' : 'Start voice save'}
 			</button>
 			<span
