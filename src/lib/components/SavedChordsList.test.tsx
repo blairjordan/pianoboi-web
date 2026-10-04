@@ -28,10 +28,12 @@ const baseProps = {
 	currentSetId: 'verse',
 	currentChordId: null,
 	playingChordId: null,
+	practiceChordId: null,
 	viewMode: 'keyboard' as const,
 	onSetCurrentChord: vi.fn(),
 	onDeleteChord: vi.fn(),
 	onPlayChord: vi.fn(),
+	onPracticeChord: vi.fn(),
 	onPlayAll: vi.fn(),
 	onStopAll: vi.fn(),
 	onAssignToSet: vi.fn(),
@@ -62,5 +64,28 @@ describe('SavedChordsList playback controls', () => {
 		);
 		fireEvent.click(screen.getByRole('button', { name: 'Stop chord sequence' }));
 		expect(onStopAll).toHaveBeenCalledOnce();
+	});
+
+	test('toggles practice for an individual chord', () => {
+		const onPracticeChord = vi.fn();
+		const { rerender } = render(
+			<SavedChordsList {...baseProps} isPlayingAll={false} onPracticeChord={onPracticeChord} />
+		);
+
+		fireEvent.click(screen.getByRole('button', { name: 'Practice chord' }));
+		expect(onPracticeChord).toHaveBeenCalledWith(chords[0]);
+
+		rerender(
+			<SavedChordsList
+				{...baseProps}
+				isPlayingAll={false}
+				practiceChordId="chord-one"
+				onPracticeChord={onPracticeChord}
+			/>
+		);
+		expect(screen.getByRole('button', { name: 'Stop practicing chord' })).toHaveAttribute(
+			'aria-pressed',
+			'true'
+		);
 	});
 });

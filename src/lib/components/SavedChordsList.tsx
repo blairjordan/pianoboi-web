@@ -11,11 +11,13 @@ interface Props {
 	currentSetId: string | null;
 	currentChordId: string | null;
 	playingChordId: string | null;
+	practiceChordId: string | null;
 	isPlayingAll: boolean;
 	viewMode: 'keyboard' | 'sheet';
 	onSetCurrentChord: (id: string | null) => void;
 	onDeleteChord: (id: string) => void;
 	onPlayChord: (chord: SavedChord) => void;
+	onPracticeChord: (chord: SavedChord) => void;
 	onPlayAll: () => void;
 	onStopAll: () => void;
 	onAssignToSet: (chordId: string, setId: string | null) => void;
@@ -28,11 +30,13 @@ export default function SavedChordsList({
 	currentSetId,
 	currentChordId,
 	playingChordId,
+	practiceChordId,
 	isPlayingAll,
 	viewMode,
 	onSetCurrentChord,
 	onDeleteChord,
 	onPlayChord,
+	onPracticeChord,
 	onPlayAll,
 	onStopAll,
 	onAssignToSet,
@@ -113,7 +117,11 @@ export default function SavedChordsList({
 						<div
 							id={chord.id}
 							className={`relative rounded-lg border p-2 shadow-sm transition-all duration-300 hover:shadow ${
-								playingChordId === chord.id ? 'bg-blue-50' : 'bg-white'
+								playingChordId === chord.id
+									? 'bg-blue-50'
+									: practiceChordId === chord.id
+										? 'border-amber-300 bg-amber-50'
+										: 'bg-white'
 							}`}
 						>
 							<div className="mb-1 flex items-center gap-1 text-xs text-gray-500">
@@ -175,16 +183,32 @@ export default function SavedChordsList({
 									)}
 								</div>
 							</div>
-							<button
-								type="button"
-								className={`absolute right-2 bottom-2 mx-1 my-1 flex items-center rounded-full bg-blue-500 px-2 py-1 text-white transition-colors hover:bg-blue-600 ${
-									playingChordId === chord.id ? 'animate-pulse' : ''
-								}`}
-								onClick={() => onPlayChord(chord)}
-							>
-								<i className="fas fa-play mr-1 text-xs" />
-								<span className="text-xs">Play</span>
-							</button>
+							<div className="absolute right-2 bottom-2 flex items-center gap-1">
+								<button
+									type="button"
+									className={`flex items-center rounded-full px-2 py-1 text-xs font-medium transition-colors ${
+										practiceChordId === chord.id
+											? 'bg-amber-500 text-white hover:bg-amber-600'
+											: 'border border-amber-300 bg-white text-amber-700 hover:bg-amber-50'
+									}`}
+									onClick={() => onPracticeChord(chord)}
+									aria-pressed={practiceChordId === chord.id}
+									aria-label={`${practiceChordId === chord.id ? 'Stop practicing' : 'Practice'} chord`}
+								>
+									<i className="fas fa-bullseye mr-1" />
+									{practiceChordId === chord.id ? 'Stop Practice' : 'Practice'}
+								</button>
+								<button
+									type="button"
+									className={`flex items-center rounded-full bg-blue-500 px-2 py-1 text-white transition-colors hover:bg-blue-600 ${
+										playingChordId === chord.id ? 'animate-pulse' : ''
+									}`}
+									onClick={() => onPlayChord(chord)}
+								>
+									<i className="fas fa-play mr-1 text-xs" />
+									<span className="text-xs">Play</span>
+								</button>
+							</div>
 						</div>
 						{marker(chord.id)}
 					</div>

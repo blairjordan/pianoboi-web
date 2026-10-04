@@ -6,6 +6,7 @@ interface PianoProps {
 	readonly?: boolean;
 	compact?: boolean;
 	overview?: boolean;
+	practiceNotes?: any[];
 	showLabels?: boolean;
 	signature: Signature;
 	onNotePress?: (note: { name: string; accidental: string; octave: number; isOn: boolean }) => void;
@@ -27,46 +28,51 @@ const flatKeyMapping: Record<string, string> = {
 	'G#': 'Ab',
 	'A#': 'Bb'
 };
+const sharpToFlat: Record<string, string> = {
+	'c#': 'db',
+	'd#': 'eb',
+	'f#': 'gb',
+	'g#': 'ab',
+	'a#': 'bb'
+};
+const flatToSharp: Record<string, string> = {
+	db: 'c#',
+	eb: 'd#',
+	gb: 'f#',
+	ab: 'g#',
+	bb: 'a#'
+};
+
+function notesToKeyIds(notes: any[], isFlatKey: boolean): string[] {
+	return notes
+		.map((note) => {
+			const name = (note.name || note._name || '').toLowerCase();
+			const accidental = note.accidental || note._accidental || '';
+			const octave = note.octave ?? note._octave;
+			const normalized = isFlatKey
+				? sharpToFlat[name + accidental] || name + accidental
+				: flatToSharp[name + accidental] || name + accidental;
+			return `${normalized}${octave}`;
+		})
+		.filter(Boolean);
+}
 
 export default function Piano({
 	notes = [],
 	readonly = false,
 	compact = false,
 	overview = false,
+	practiceNotes = [],
 	showLabels = false,
 	signature,
 	onNotePress
 }: PianoProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const isFlatKey = signature.flats > 0;
-	const activeKeys = useMemo(
-		() =>
-			notes
-				.map((note) => {
-					const name = (note.name || note._name || '').toLowerCase();
-					const accidental = note.accidental || note._accidental || '';
-					const octave = note.octave ?? note._octave;
-					const sharpToFlat: Record<string, string> = {
-						'c#': 'db',
-						'd#': 'eb',
-						'f#': 'gb',
-						'g#': 'ab',
-						'a#': 'bb'
-					};
-					const flatToSharp: Record<string, string> = {
-						db: 'c#',
-						eb: 'd#',
-						gb: 'f#',
-						ab: 'g#',
-						bb: 'a#'
-					};
-					const normalized = isFlatKey
-						? sharpToFlat[name + accidental] || name + accidental
-						: flatToSharp[name + accidental] || name + accidental;
-					return `${normalized}${octave}`;
-				})
-				.filter(Boolean),
-		[isFlatKey, notes]
+	const activeKeys = useMemo(() => notesToKeyIds(notes, isFlatKey), [isFlatKey, notes]);
+	const practiceKeys = useMemo(
+		() => notesToKeyIds(practiceNotes, isFlatKey),
+		[isFlatKey, practiceNotes]
 	);
 
 	useEffect(() => {
@@ -98,7 +104,7 @@ export default function Piano({
 									key={keyId}
 									type="button"
 									aria-label={`${note}${octave}`}
-									className={`white-key min-w-0 border-r border-gray-300 last:border-r-0 ${activeKeys.includes(keyId) ? 'active' : 'bg-white hover:bg-blue-50'}`}
+									className={`white-key min-w-0 border-r border-gray-300 last:border-r-0 ${activeKeys.includes(keyId) ? 'active' : practiceKeys.includes(keyId) ? 'practice' : 'bg-white hover:bg-blue-50'}`}
 									onMouseDown={() => emit(note, '', octave, true)}
 									onMouseUp={() => emit(note, '', octave, false)}
 									onMouseLeave={() => activeKeys.includes(keyId) && emit(note, '', octave, false)}
@@ -117,7 +123,7 @@ export default function Piano({
 									key={keyId}
 									type="button"
 									aria-label={`${displayNote}${octave}`}
-									className={`black-key absolute top-0 z-10 h-[62%] w-[9%] rounded-b-sm border border-black ${activeKeys.includes(keyId) ? 'active' : 'bg-gray-900 hover:bg-gray-700'}`}
+									className={`black-key absolute top-0 z-10 h-[62%] w-[9%] rounded-b-sm border border-black ${activeKeys.includes(keyId) ? 'active' : practiceKeys.includes(keyId) ? 'practice' : 'bg-gray-900 hover:bg-gray-700'}`}
 									style={{ left: `${((offset + 1) / 7) * 100 - 4.5}%` }}
 									onMouseDown={() => emit(baseNote, accidental, octave, true)}
 									onMouseUp={() => emit(baseNote, accidental, octave, false)}
@@ -150,7 +156,7 @@ export default function Piano({
 										key={keyId}
 										type="button"
 										aria-label={`${note}${octave}`}
-										className={`white-key flex cursor-pointer items-end justify-center border border-gray-300 ${activeKeys.includes(keyId) ? 'active' : 'bg-white'} ${compact ? 'h-20 w-[1.4rem] pb-2' : 'h-32 w-[1.8rem] pb-2'}`}
+										className={`white-key flex cursor-pointer items-end justify-center border border-gray-300 ${activeKeys.includes(keyId) ? 'active' : practiceKeys.includes(keyId) ? 'practice' : 'bg-white'} ${compact ? 'h-20 w-[1.4rem] pb-2' : 'h-32 w-[1.8rem] pb-2'}`}
 										onMouseDown={() => emit(note, '', octave, true)}
 										onMouseUp={() => emit(note, '', octave, false)}
 										onMouseLeave={() => activeKeys.includes(keyId) && emit(note, '', octave, false)}
@@ -176,7 +182,7 @@ export default function Piano({
 										key={keyId}
 										type="button"
 										aria-label={`${displayNote}${octave}`}
-										className={`black-key absolute top-0 z-10 cursor-pointer text-white ${activeKeys.includes(keyId) ? 'active' : 'bg-gray-800'} ${compact ? 'h-12' : 'h-20'}`}
+										className={`black-key absolute top-0 z-10 cursor-pointer text-white ${activeKeys.includes(keyId) ? 'active' : practiceKeys.includes(keyId) ? 'practice' : 'bg-gray-800'} ${compact ? 'h-12' : 'h-20'}`}
 										style={{ left: `calc(${offset} * ${keyWidth} + ${inset})`, width }}
 										onMouseDown={() => emit(baseNote, accidental, octave, true)}
 										onMouseUp={() => emit(baseNote, accidental, octave, false)}

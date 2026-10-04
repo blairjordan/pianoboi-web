@@ -73,6 +73,7 @@ export default function PianoBoi() {
 	const [currentSetId, setCurrentSetId] = useState<string | null>(null);
 	const [currentChordId, setCurrentChordIdState] = useState<string | null>(null);
 	const [playingChordId, setPlayingChordId] = useState<string | null>(null);
+	const [practiceChordId, setPracticeChordId] = useState<string | null>(null);
 	const [isPlayingAll, setIsPlayingAll] = useState(false);
 
 	const chordsContainerRef = useRef<HTMLDivElement>(null);
@@ -97,6 +98,29 @@ export default function PianoBoi() {
 			currentSetId ? savedChords.filter((chord) => chord.setId === currentSetId) : savedChords,
 		[currentSetId, savedChords]
 	);
+	const practiceChord = useMemo(
+		() => savedChords.find((chord) => chord.id === practiceChordId) || null,
+		[practiceChordId, savedChords]
+	);
+
+	useEffect(() => {
+		if (!practiceChord) {
+			if (practiceChordId) setPracticeChordId(null);
+			return;
+		}
+		const targetNotes = new Set(
+			practiceChord.notes.map((note) =>
+				typeof note === 'number'
+					? note
+					: (note.number ??
+						calculateMidiFromName(`${note.name}${note.accidental || ''}`, note.octave))
+			)
+		);
+		const heldNotes = new Set(activeNotes.map((note) => note.number));
+		if (targetNotes.size && [...targetNotes].every((note) => heldNotes.has(note))) {
+			setPracticeChordId(null);
+		}
+	}, [activeNotes, practiceChord, practiceChordId]);
 
 	useEffect(() => {
 		const scratchpadApi = createScratchpadApi();
@@ -521,16 +545,21 @@ export default function PianoBoi() {
 							currentSetId={currentSetId}
 							currentChordId={currentChordId}
 							playingChordId={playingChordId}
+							practiceChordId={practiceChordId}
 							isPlayingAll={isPlayingAll}
 							viewMode={viewMode}
 							onSetCurrentChord={setCurrentChord}
 							onDeleteChord={(id) => {
 								if (playingChordId === id) stopSequence();
+								if (practiceChordId === id) setPracticeChordId(null);
 								persist(savedChords.filter((chord) => chord.id !== id));
 								clearActiveNotes();
 								if (currentChordId === id) setCurrentChordIdState(null);
 							}}
 							onPlayChord={playChord}
+							onPracticeChord={(chord) =>
+								setPracticeChordId((id) => (id === chord.id ? null : chord.id))
+							}
 							onPlayAll={playAllChords}
 							onStopAll={stopSequence}
 							onAssignToSet={(chordId, setId) =>
@@ -539,6 +568,7 @@ export default function PianoBoi() {
 							onClearChords={(setId) => {
 								persist(setId ? savedChords.filter((chord) => chord.setId !== setId) : []);
 								stopSequence();
+								setPracticeChordId(null);
 								setCurrentChordIdState(null);
 							}}
 						/>
@@ -649,6 +679,7 @@ export default function PianoBoi() {
 					)}
 					<Piano
 						notes={activeNotes}
+						practiceNotes={practiceChord?.notes || []}
 						overview={isPianoCompact}
 						showLabels
 						signature={currentSignature}

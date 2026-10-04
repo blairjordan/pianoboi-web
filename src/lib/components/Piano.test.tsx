@@ -42,4 +42,28 @@ describe('Piano', () => {
 		expect(middleC).toHaveClass('h-20', 'w-[1.4rem]');
 		expect(middleC).toHaveTextContent('C');
 	});
+
+	test('shows practice targets separately from currently active notes', () => {
+		const practiceNotes = [
+			{ name: 'C', accidental: '', octave: 4 },
+			{ name: 'E', accidental: '', octave: 4 }
+		];
+		const { container, rerender } = render(
+			<Piano overview signature={signatures[0]} practiceNotes={practiceNotes} />
+		);
+		expect(within(container).getByRole('button', { name: 'C4' })).toHaveClass('practice');
+		expect(within(container).getByRole('button', { name: 'E4' })).toHaveClass('practice');
+
+		rerender(
+			<Piano
+				overview
+				signature={signatures[0]}
+				notes={[{ name: 'C', accidental: '', octave: 4 }]}
+				practiceNotes={practiceNotes}
+			/>
+		);
+		expect(within(container).getByRole('button', { name: 'C4' })).toHaveClass('active');
+		expect(within(container).getByRole('button', { name: 'C4' })).not.toHaveClass('practice');
+		expect(within(container).getByRole('button', { name: 'E4' })).toHaveClass('practice');
+	});
 });
