@@ -36,6 +36,7 @@ import Piano from './Piano';
 import SavedChordsList from './SavedChordsList';
 import Scratchpad from './Scratchpad';
 import SheetMusic from './SheetMusic';
+import VoiceSaveControl from './VoiceSaveControl';
 import ViewModeSwitcher from './ViewModeSwitcher';
 
 type AudioNodes = ReturnType<typeof playNote>;
@@ -510,6 +511,7 @@ export default function PianoBoi() {
 								<span className="ml-1">Save Chord</span>
 								<span className="ml-1 rounded bg-blue-600/80 px-1 py-0.5">Space</span>
 							</button>
+							<VoiceSaveControl onSave={saveCurrentChord} />
 							<button
 								type="button"
 								className="flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
