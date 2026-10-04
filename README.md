@@ -38,3 +38,29 @@ window.pianoboiScratchpad.clear();
 
 Writing directly with `localStorage.setItem('pianoboi-scratchpad', content)` is also supported;
 the drawer detects same-tab writes as well as updates from other browser contexts.
+
+## Browser agent API
+
+Open **Agent Instructions** in the app header for copyable guidance. The page exposes a live API
+for browser-driving agents, available even when the scratchpad is closed:
+
+```js
+const app = window.pianoboiAgent;
+
+const chord = app.chords.add({
+	notes: ['C4', 'E4', 'G4'],
+	signatureId: 'C',
+	setId: null
+});
+
+app.chords.update(chord.id, { notes: ['D4', 'F#4', 'A4'], signatureId: 'D' });
+app.chords.move(chord.id, 0);
+app.chords.remove(chord.id);
+
+app.scratchpad.set('# Chorus\nPlay <Chord name="C"><Keys>C4 E4 G4</Keys></Chord>');
+```
+
+`app.chords` provides `list`, `add`, `update`, `move`, `remove`, and `replaceAll`.
+`app.sets` provides `list`, `add`, `update`, and `remove`. Call `app.help()` for the full text
+instructions or inspect `app.storageKeys` for the underlying browser-memory keys. API writes update
+the interface immediately; direct changes to those localStorage keys are detected within 500ms.

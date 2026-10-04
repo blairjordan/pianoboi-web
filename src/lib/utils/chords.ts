@@ -24,6 +24,10 @@ export interface MatchingChords {
 	minorMatches: number[];
 }
 
+export const SAVED_CHORDS_STORAGE_KEY = 'pianoboi-saved-chords';
+export const CHORD_SETS_STORAGE_KEY = 'pianoboi-chord-sets';
+export const CHORDS_CHANGE_EVENT = 'pianoboi:chords-change';
+
 /**
  * Load saved chords and sets from localStorage
  */
@@ -34,16 +38,12 @@ export function loadSavedChords(): { savedChords: SavedChord[]; chordSets: Chord
 	try {
 		if (typeof window === 'undefined') return { savedChords, chordSets };
 
-		const savedChordsData = localStorage.getItem('pianoboi-saved-chords');
-		const savedSetsData = localStorage.getItem('pianoboi-chord-sets');
-
-		console.log('Loading chords from localStorage:', savedChordsData);
-		console.log('Loading sets from localStorage:', savedSetsData);
+		const savedChordsData = localStorage.getItem(SAVED_CHORDS_STORAGE_KEY);
+		const savedSetsData = localStorage.getItem(CHORD_SETS_STORAGE_KEY);
 
 		if (savedSetsData) {
 			const parsedSets = JSON.parse(savedSetsData);
 			chordSets.push(...parsedSets);
-			console.log('Loaded chord sets:', chordSets);
 		}
 
 		if (savedChordsData) {
@@ -88,7 +88,6 @@ export function loadSavedChords(): { savedChords: SavedChord[]; chordSets: Chord
 			});
 
 			savedChords.push(...processedChords);
-			console.log('Loaded saved chords:', savedChords);
 		}
 	} catch (error) {
 		console.error('Error loading saved chords:', error);
@@ -105,10 +104,9 @@ export function persistSavedChords(savedChords: SavedChord[], chordSets: ChordSe
 	if (typeof window === 'undefined') return;
 
 	try {
-		localStorage.setItem('pianoboi-saved-chords', JSON.stringify(savedChords));
-		localStorage.setItem('pianoboi-chord-sets', JSON.stringify(chordSets));
-		console.log('Saved chords to localStorage:', savedChords);
-		console.log('Saved sets to localStorage:', chordSets);
+		localStorage.setItem(SAVED_CHORDS_STORAGE_KEY, JSON.stringify(savedChords));
+		localStorage.setItem(CHORD_SETS_STORAGE_KEY, JSON.stringify(chordSets));
+		window.dispatchEvent(new CustomEvent(CHORDS_CHANGE_EVENT));
 	} catch (error) {
 		console.error('Error saving to localStorage:', error);
 	}

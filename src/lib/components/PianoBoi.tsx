@@ -14,6 +14,8 @@ import {
 } from '../utils/audio';
 import {
 	assignChordToSet,
+	CHORD_SETS_STORAGE_KEY,
+	CHORDS_CHANGE_EVENT,
 	createChordSet,
 	deleteChordSet,
 	extractPitchClasses,
@@ -21,12 +23,15 @@ import {
 	generateScaleChords,
 	loadSavedChords,
 	persistSavedChords,
+	SAVED_CHORDS_STORAGE_KEY,
 	type ChordSet,
 	type SavedChord
 } from '../utils/chords';
+import { createBrowserAgentApi } from '../utils/browserAgent';
 import { startChordSequence } from '../utils/chordSequence';
 import { disableWebMidi, initializeWebMidi, setupMidiListeners } from '../utils/midi';
 import { createScratchpadApi } from '../utils/scratchpad';
+import AgentInstructions from './AgentInstructions';
 import ChordDisplay from './ChordDisplay';
 import ChordScaleReference from './ChordScaleReference';
 import ChordSetManager from './ChordSetManager';
@@ -62,6 +67,7 @@ export default function PianoBoi() {
 	const [showScratchpad, setShowScratchpad] = useState(
 		() => localStorage.getItem('pianoboi-show-scratchpad') === 'true'
 	);
+	const [showAgentInstructions, setShowAgentInstructions] = useState(false);
 	const [savedChords, setSavedChords] = useState<SavedChord[]>([]);
 	const [chordSets, setChordSets] = useState<ChordSet[]>([]);
 	const [currentSetId, setCurrentSetId] = useState<string | null>(null);
@@ -93,10 +99,49 @@ export default function PianoBoi() {
 	);
 
 	useEffect(() => {
-		const api = createScratchpadApi();
-		window.pianoboiScratchpad = api;
+		const scratchpadApi = createScratchpadApi();
+		const agentApi = createBrowserAgentApi(scratchpadApi);
+		window.pianoboiScratchpad = scratchpadApi;
+		window.pianoboiAgent = agentApi;
 		return () => {
-			if (window.pianoboiScratchpad === api) delete window.pianoboiScratchpad;
+			if (window.pianoboiScratchpad === scratchpadApi) delete window.pianoboiScratchpad;
+			if (window.pianoboiAgent === agentApi) delete window.pianoboiAgent;
+		};
+	}, []);
+
+	useEffect(() => {
+		let lastChords = localStorage.getItem(SAVED_CHORDS_STORAGE_KEY);
+		let lastSets = localStorage.getItem(CHORD_SETS_STORAGE_KEY);
+
+		const syncFromStorage = (force = false) => {
+			const nextChords = localStorage.getItem(SAVED_CHORDS_STORAGE_KEY);
+			const nextSets = localStorage.getItem(CHORD_SETS_STORAGE_KEY);
+			if (!force && nextChords === lastChords && nextSets === lastSets) return;
+			lastChords = nextChords;
+			lastSets = nextSets;
+			const loaded = loadSavedChords();
+			setSavedChords(loaded.savedChords);
+			setChordSets(loaded.chordSets);
+			setCurrentSetId((id) => (id && loaded.chordSets.some((set) => set.id === id) ? id : null));
+			setCurrentChordIdState((id) =>
+				id === 'top' || (id && loaded.savedChords.some((chord) => chord.id === id)) ? id : null
+			);
+		};
+
+		const handleStorage = (event: StorageEvent) => {
+			if (event.key === SAVED_CHORDS_STORAGE_KEY || event.key === CHORD_SETS_STORAGE_KEY) {
+				syncFromStorage(true);
+			}
+		};
+		const handleAgentChange = () => syncFromStorage(true);
+		window.addEventListener('storage', handleStorage);
+		window.addEventListener(CHORDS_CHANGE_EVENT, handleAgentChange);
+		const interval = window.setInterval(() => syncFromStorage(), 500);
+
+		return () => {
+			window.removeEventListener('storage', handleStorage);
+			window.removeEventListener(CHORDS_CHANGE_EVENT, handleAgentChange);
+			window.clearInterval(interval);
 		};
 	}, []);
 
@@ -371,8 +416,8 @@ export default function PianoBoi() {
 		<div className="flex h-screen flex-col">
 			<header className="sticky top-0 z-30 bg-white shadow-md">
 				<div className="container mx-auto p-2">
-					<div className="flex items-center justify-between gap-2">
-						<div className="flex items-center gap-2">
+					<div className="flex flex-wrap items-center justify-between gap-2">
+						<div className="flex flex-wrap items-center justify-end gap-2">
 							<ViewModeSwitcher viewMode={viewMode} onChange={setViewMode} />
 							<KeySignatureSelector
 								currentSignature={currentSignature}
@@ -403,6 +448,14 @@ export default function PianoBoi() {
 							/>
 						</div>
 						<div className="flex items-center gap-2">
+							<button
+								type="button"
+								className="text-xs font-semibold text-blue-700 underline decoration-blue-300 underline-offset-2 hover:text-blue-900"
+								onClick={() => setShowAgentInstructions(true)}
+								aria-haspopup="dialog"
+							>
+								Agent Instructions
+							</button>
 							<button
 								type="button"
 								className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-medium shadow-sm ${
@@ -601,6 +654,9 @@ export default function PianoBoi() {
 					</div>
 				</div>
 			</div>
+			{showAgentInstructions && (
+				<AgentInstructions onClose={() => setShowAgentInstructions(false)} />
+			)}
 		</div>
 	);
 }
